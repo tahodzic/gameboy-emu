@@ -1,0 +1,15 @@
+#pragma once
+
+#include <map>
+
+std::map<int,int> opcodes = 
+{
+	{0x00,0},
+	{0x06,1},
+	{0x0E,1},
+	{0x16,1},
+	{0x1E,1},
+	{0x26,1},
+	{0x2E,1},
+	{0xC3,2},
+};
