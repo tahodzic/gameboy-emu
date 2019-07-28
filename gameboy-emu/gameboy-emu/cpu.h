@@ -8,22 +8,27 @@
 
 void loadRom(const char *);
 void initialize();
-short int fetchOpcode();
-void executeOpcode(short int);
+int fetchOpcode();
+void executeOpcode(int);
 
 char ram[65536];
 short int stackPointer = 0, programCounter = 0;
 
 struct reg
 {
-	char A;
-	char B;
-	char C;
-	char D;
-	char E;
-	char F;
-	char H;
-	char L;
+	char A = 0x00;
+	char B = 0x00;
+	char C = 0x00;
+	char D = 0x00;
+	char E = 0x00;
+	char F = 0x00;
+	char H = 0x00;
+	char L = 0x00;
 } registers;
+
+struct flags
+{
+
+};
 
 #endif

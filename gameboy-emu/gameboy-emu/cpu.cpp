@@ -7,14 +7,13 @@ int main()
 {
 	initialize();
 	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
-	
-	for(int i = 0; i < 10000; i++)
+
+	for(int i = 0; i < 20; i++)
 	{
 		executeOpcode(fetchOpcode());
 	}
 
-	registers.A = 0;
-	
+
 	return 0;
 }
 
@@ -24,45 +23,58 @@ void initialize()
 	stackPointer = 0xE000; //stack: from $C000 - $DFFF of ram, grows downward
 }
 
-void loadRom(const char *romName) 
+void loadRom(const char *romName)
 {
-	 std::ifstream rom (romName, std::ifstream::binary);
+	std::ifstream rom(romName, std::ifstream::binary);
 
-	 rom.seekg(0, rom.end);
-	 int length = rom.tellg();
-	 rom.seekg(0, rom.beg);
+	rom.seekg(0, rom.end);
+	int length = rom.tellg();
+	rom.seekg(0, rom.beg);
 
-	 if (rom)
-		 rom.read(ram, length);
-	 else
-		 std::cout << "Couldn't open following rom: " << romName;
+	if (rom)
+		rom.read(ram, length);
+	else
+		std::cout << "Couldn't open following rom: " << romName;
 
-	 if (rom)
-		 std::cout << "Rom opened successfully." << std::endl;
-	 else
-		 std::cout << "Error: only " << rom.gcount() << " could be read" << std::endl;
+	if (rom)
+		std::cout << "Rom opened successfully." << std::endl;
+	else
+		std::cout << "Error: only " << rom.gcount() << " could be read" << std::endl;
 
-	 //Close rom, since it's now loaded into ram
-	 rom.close();
+	//Close rom, since it's now loaded into ram
+	rom.close();
 }
 
-short int fetchOpcode()
+int fetchOpcode()
 {
-	short int opcode = 0;
+	int opcode = 0;
 
 	//for (int i = 0; i < opcodes.at(ram[programCounter]); i++)
 	//{
 	//	opcode += ram[programCounter + i];
 	//}
-	
-	opcode = ram[programCounter] & 0x00FF;
+
+
+	opcode = ram[programCounter] & 0xFF;
+	if (opcode == 0x00CB)
+	{
+		programCounter++;
+		opcode = opcode << 8 | ram[programCounter];
+	}
+
+	if (opcode == 0x10)
+	{
+		//ram[++programCounter] == 0x00 ? opcode = (opcode << 8 | ram[programCounter]) : programCounter--;
+		if (ram[programCounter + 1] == 0x00)
+			opcode = (opcode << 8 | ram[++programCounter]);
+	}
 	programCounter++;
-	//std::cout << "Opcode: " << std::hex << opcode << std::endl;
+	std::cout << "Opcode: " << std::hex << opcode << std::endl;
 
 	return opcode;
 }
 
-void executeOpcode(short int opcode)
+void executeOpcode(int opcode)
 {
 	switch (opcode)
 	{
@@ -82,6 +94,8 @@ void executeOpcode(short int opcode)
 		/*LD C, n*/
 		case 0x0E:
 		{
+			registers.C = ram[++programCounter];
+			programCounter++;
 
 		}
 		/*LD D, n*/
@@ -423,6 +437,11 @@ void executeOpcode(short int opcode)
 		/*LD (HL-),A */
 		/*LDD (HL),A*/ case 0x32:
 		{
+			int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
+			ram[regHL]= registers.A;
+			regHL--;
+			registers.H = regHL & 0xFF00;
+			registers.L = regHL & 0xFF;
 			break;
 		}
 
@@ -462,6 +481,9 @@ void executeOpcode(short int opcode)
 			break;
 		}
 		/*LD HL,nn*/ case 0x21: {
+			registers.H = ram[programCounter];
+			registers.L = ram[++programCounter];
+			programCounter++;
 			break;
 		}
 		/*LD SP,nn*/ case 0x31: {
@@ -512,6 +534,7 @@ void executeOpcode(short int opcode)
 
 
 		/*POP AF*/ case 0xF1: {
+
 			break;
 
 		}
@@ -769,6 +792,7 @@ void executeOpcode(short int opcode)
 
 		/*XOR A*/ case 0xAF:
 		{
+			registers.A ^= registers.A;
 			break;
 		}
 		/*XOR B*/ case 0xA8:
@@ -885,6 +909,8 @@ void executeOpcode(short int opcode)
 		}
 		/*DEC B*/ case 0x05:
 		{
+			registers.B--;
+			registers.B == 0 ? 
 			break;
 		}
 		/*DEC C*/ case 0x0D:
@@ -1041,6 +1067,8 @@ void executeOpcode(short int opcode)
 
 		/*STOP*/ case 0x1000:
 		{
+
+
 			break;
 		}
 
@@ -1415,7 +1443,7 @@ void executeOpcode(short int opcode)
 
 		/*JP nn*/ case 0xC3:
 		{
-			short int newAddressToJumpTo = (ram[programCounter + 1] << 8) + ram[programCounter];
+		    int newAddressToJumpTo = ((ram[programCounter + 1] << 8) + (ram[programCounter]&0xFF));
 			programCounter = newAddressToJumpTo;
 			break;
 		}
@@ -1546,7 +1574,7 @@ void executeOpcode(short int opcode)
 		}
 
 
-		default: 
+		default:
 		{
 			std::cout << "Following opcode needs to be implemented: " << std::hex << opcode << std::endl;
 		};
