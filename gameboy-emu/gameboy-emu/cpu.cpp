@@ -8,9 +8,10 @@ int main()
 	initialize();
 	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
 
-	for(int i = 0; i < 20; i++)
+	while(1)
 	{
 		executeOpcode(fetchOpcode());
+		updateFlagRegister();
 	}
 
 
@@ -21,6 +22,23 @@ void initialize()
 {
 	programCounter = 0x100;
 	stackPointer = 0xE000; //stack: from $C000 - $DFFF of ram, grows downward
+	registers.A = 0x1;
+	registers.F = 0xB0;
+	registers.B = 0x0;
+	registers.C = 0x13;
+	registers.D = 0x0;
+	registers.E = 0xD8;
+	registers.H = 0x01;
+	registers.L = 0x4D;
+	flags.Z = 0x1;
+	flags.H = 0x1;
+	flags.C = 0x1;
+
+}
+
+void updateFlagRegister() 
+{
+	registers.F = flags.Z << 7 | flags.N << 6 | flags.H << 5 | flags.C << 4;
 }
 
 void loadRom(const char *romName)
@@ -74,6 +92,7 @@ int fetchOpcode()
 	return opcode;
 }
 
+//0x293 dort stehengeblieben (programCounter bei no$gmb debugger)
 void executeOpcode(int opcode)
 {
 	switch (opcode)
@@ -89,34 +108,39 @@ void executeOpcode(int opcode)
 		/*LD B, n*/
 		case 0x06:
 		{
-
+			registers.B = ram[programCounter];
+			programCounter++;
+			break;
 		}
 		/*LD C, n*/
 		case 0x0E:
 		{
-			registers.C = ram[++programCounter];
+			registers.C = ram[programCounter];
 			programCounter++;
+			break;
 
 		}
 		/*LD D, n*/
 		case 0x16:
 		{
+			break;
 
 		}
 		/*LD E, n*/
 		case 0x1E:
 		{
+			break;
 
 		}
 		/*LD H, n*/
 		case 0x26:
 		{
-
+			break;
 		}
 		/*LD L, n*/
 		case 0x2E:
 		{
-
+			break;
 		}
 
 
@@ -440,7 +464,7 @@ void executeOpcode(int opcode)
 			int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
 			ram[regHL]= registers.A;
 			regHL--;
-			registers.H = regHL & 0xFF00;
+			registers.H = (regHL >> 8) & 0xFF;
 			registers.L = regHL & 0xFF;
 			break;
 		}
@@ -464,6 +488,9 @@ void executeOpcode(int opcode)
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
+			int n = ram[programCounter + 1] & 0xFF;
+			ram[0xFF00 + n] = registers.A;
+			programCounter++;
 			break;
 		}
 
@@ -481,8 +508,8 @@ void executeOpcode(int opcode)
 			break;
 		}
 		/*LD HL,nn*/ case 0x21: {
-			registers.H = ram[programCounter];
-			registers.L = ram[++programCounter];
+			registers.L = ram[programCounter];
+			registers.H = ram[++programCounter];
 			programCounter++;
 			break;
 		}
@@ -793,6 +820,13 @@ void executeOpcode(int opcode)
 		/*XOR A*/ case 0xAF:
 		{
 			registers.A ^= registers.A;
+			if (registers.A == 0x00)
+				flags.Z = 0x1;
+
+			
+			flags.N = 0x0;
+			flags.C = 0x0;
+			flags.H = 0x0;
 			break;
 		}
 		/*XOR B*/ case 0xA8:
@@ -909,12 +943,62 @@ void executeOpcode(int opcode)
 		}
 		/*DEC B*/ case 0x05:
 		{
-			registers.B--;
-			registers.B == 0 ? 
+			unsigned char res = registers.B - 1;
+			unsigned char tmp = registers.B;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+			
+			flags.H = (((registers.B&0xF) ^ ((-1)&0xF) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.B = tmp;
+			//if (registers.B == 0x00)
+			//{
+			//	registers.B = 0xFF;
+			//	flags.Z = 0x0;
+
+			//}
+			//else if (registers.B - 1 == 0x0)
+			//{
+			//	flags.Z = 0x1;
+			//	registers.B--;
+			//}
+			//else 
+			//{
+			//	registers.B--;
+			//	flags.Z = 0x0;
+			//}
+
+			flags.N = 0x1;
+
+
+
 			break;
 		}
 		/*DEC C*/ case 0x0D:
 		{
+			char res = registers.C - 1;
+			flags.H = (registers.C ^ (-1) ^ res) & 0x1;
+			if (registers.C == 0x00)
+			{
+				registers.C = 0xFF;
+				flags.Z = 0x0;
+
+			}
+			else if (registers.C - 1 == 0x0)
+			{
+				flags.Z = 0x1;
+				registers.C--;
+			}
+			else
+			{
+				registers.C--;
+				flags.Z = 0x0;
+			}
+
+			flags.N = 0x1;
 			break;
 		}
 		/*DEC D*/ case 0x15:
@@ -1476,6 +1560,12 @@ void executeOpcode(int opcode)
 
 		/*JR NZ,**/ case 0x20:
 		{
+			if (flags.Z == 0x00)
+			{
+				programCounter += (signed)ram[programCounter];
+				programCounter++;
+			}
+			else programCounter += 2;
 			break;
 		}
 		/*JR Z,* */case 0x28:

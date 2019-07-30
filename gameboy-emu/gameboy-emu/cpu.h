@@ -10,6 +10,7 @@ void loadRom(const char *);
 void initialize();
 int fetchOpcode();
 void executeOpcode(int);
+void updateFlagRegister();
 
 char ram[65536];
 short int stackPointer = 0, programCounter = 0;
@@ -26,9 +27,12 @@ struct reg
 	char L = 0x00;
 } registers;
 
-struct flags
+struct flag
 {
-
-};
+	char Z = 0x00;
+	char N = 0x00;
+	char H = 0x00;
+	char C = 0x00;
+} flags;
 
 #endif
