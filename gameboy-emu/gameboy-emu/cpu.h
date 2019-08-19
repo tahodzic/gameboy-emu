@@ -35,4 +35,6 @@ struct flag
 	char C = 0x00;
 } flags;
 
+char imeFlag;
+
 #endif

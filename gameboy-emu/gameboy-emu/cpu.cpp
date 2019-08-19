@@ -92,7 +92,8 @@ int fetchOpcode()
 	return opcode;
 }
 
-//0x293 dort stehengeblieben (programCounter bei no$gmb debugger)
+//0xF0 (0x02B2 PC) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 
+//Dem nachgehen.
 void executeOpcode(int opcode)
 {
 	switch (opcode)
@@ -393,6 +394,8 @@ void executeOpcode(int opcode)
 		}
 		/*LD A,#*/ case 0x3E:
 		{
+			registers.A = ram[programCounter];
+			programCounter++;
 			break;
 		}
 
@@ -488,7 +491,7 @@ void executeOpcode(int opcode)
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
-			int n = ram[programCounter + 1] & 0xFF;
+			int n = ram[programCounter] & 0xFF;
 			ram[0xFF00 + n] = registers.A;
 			programCounter++;
 			break;
@@ -497,6 +500,9 @@ void executeOpcode(int opcode)
 		/*LDH A,(n)*/
 		/*LD A,($FF00+n)*/ case 0xF0:
 		{
+			int n = ram[programCounter] & 0xFF;
+			registers.A = ram[0xFF00 + n] & 0xFF;
+			programCounter++;
 			break;
 		}
 
@@ -939,6 +945,19 @@ void executeOpcode(int opcode)
 
 		/*DEC A*/ case 0x3D:
 		{
+			unsigned char res = registers.A - 1;
+			unsigned char tmp = registers.A;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+
+			flags.H = (((registers.A) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.A = tmp;
+			flags.N = 0x1;
+
 			break;
 		}
 		/*DEC B*/ case 0x05:
@@ -951,7 +970,7 @@ void executeOpcode(int opcode)
 				flags.Z = 0x1;
 			else flags.Z = 0x0;
 			
-			flags.H = (((registers.B&0xF) ^ ((-1)&0xF) ^ res) & 0x10) >> 4;
+			flags.H = (((registers.B) ^ (1) ^ res) & 0x10) >> 4;
 			tmp--;
 			registers.B = tmp;
 			//if (registers.B == 0x00)
@@ -979,46 +998,110 @@ void executeOpcode(int opcode)
 		}
 		/*DEC C*/ case 0x0D:
 		{
-			char res = registers.C - 1;
-			flags.H = (registers.C ^ (-1) ^ res) & 0x1;
-			if (registers.C == 0x00)
-			{
-				registers.C = 0xFF;
-				flags.Z = 0x0;
+			unsigned char res = registers.C - 1;
+			unsigned char tmp = registers.C;
 
-			}
-			else if (registers.C - 1 == 0x0)
-			{
+
+			if (tmp - 1 == 0x0)
 				flags.Z = 0x1;
-				registers.C--;
-			}
-			else
-			{
-				registers.C--;
-				flags.Z = 0x0;
-			}
+			else flags.Z = 0x0;
 
+			flags.H = (((registers.C) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.C = tmp;
 			flags.N = 0x1;
+
 			break;
 		}
 		/*DEC D*/ case 0x15:
 		{
+			unsigned char res = registers.D - 1;
+			unsigned char tmp = registers.D;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+
+			flags.H = (((registers.D) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.D = tmp;
+			flags.N = 0x1;
+
+			
 			break;
 		}
 		/*DEC E*/ case 0x1D:
 		{
+			unsigned char res = registers.E - 1;
+			unsigned char tmp = registers.E;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+
+			flags.H = (((registers.E) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.E = tmp;
+			flags.N = 0x1;
+
+			
 			break;
 		}
 		/*DEC H*/ case 0x25:
 		{
+			unsigned char res = registers.H - 1;
+			unsigned char tmp = registers.H;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+
+			flags.H = (((registers.H) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.H = tmp;
+			flags.N = 0x1;
+
+			
 			break;
 		}
 		/*DEC L*/ case 0x2D:
 		{
+			unsigned char res = registers.H - 1;
+			unsigned char tmp = registers.H;
+
+
+			if (tmp - 1 == 0x0)
+				flags.Z = 0x1;
+			else flags.Z = 0x0;
+
+			flags.H = (((registers.H) ^ (1) ^ res) & 0x10) >> 4;
+			tmp--;
+			registers.H = tmp;
+			flags.N = 0x1;
+
+			
 			break;
 		}
 		/*DEC (HL)*/ case 0x35:
 		{
+			//unsigned char res = registers.C - 1;
+			//unsigned char tmp = registers.C;
+
+
+
+			//if (tmp - 1 == 0x0)
+			//	flags.Z = 0x1;
+			//else flags.Z = 0x0;
+
+			//flags.H = (((registers.C) ^ (1) ^ res) & 0x10) >> 4;
+			//tmp--;
+			//registers.C = tmp;
+			//flags.N = 0x1;
+
+			
 			break;
 		}
 
@@ -1159,6 +1242,7 @@ void executeOpcode(int opcode)
 
 		/*DI*/ case 0xF3:
 		{
+			imeFlag = 0x00;
 			break;
 		}
 
@@ -1565,7 +1649,7 @@ void executeOpcode(int opcode)
 				programCounter += (signed)ram[programCounter];
 				programCounter++;
 			}
-			else programCounter += 2;
+			else programCounter++;
 			break;
 		}
 		/*JR Z,* */case 0x28:
