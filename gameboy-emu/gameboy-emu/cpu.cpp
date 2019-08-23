@@ -108,13 +108,13 @@ void loadRom(const char *romName)
 	}
 }
 
-char readRam(short int address)
+unsigned char readRam(unsigned short address)
 {
 	return ram[address] & 0xFF;
 }
 
 /*8 Bit writes*/
-void writeRam(short int address, char data)
+void writeRam(unsigned short address,  char data)
 {
 	/*0x0000 - 0x7FFF is read only*/
 	if (address > 0x7FFF)
@@ -139,7 +139,7 @@ void writeRam(short int address, char data)
 
 /*16 bit writes*/
 //TODO
-void writeRam(short int address, short int data)
+void writeRam(unsigned short address, unsigned short data)
 {
 
 }
@@ -194,14 +194,16 @@ void executeOpcode(unsigned char opcode)
 		/*LD B, n*/
 		case 0x06:
 		{
-			registers.B = ram[programCounter];
+			//registers.B = ram[programCounter];
+			registers.B = readRam(programCounter);
 			programCounter++;
 			break;
 		}
 		/*LD C, n*/
 		case 0x0E:
 		{
-			registers.C = ram[programCounter];
+			//registers.C = ram[programCounter];
+			registers.C = readRam(programCounter);
 			programCounter++;
 			break;
 
@@ -479,7 +481,8 @@ void executeOpcode(unsigned char opcode)
 		}
 		/*LD A,#*/ case 0x3E:
 		{
-			registers.A = ram[programCounter];
+			//registers.A = ram[programCounter];
+			registers.A = readRam(programCounter);
 			programCounter++;
 			break;
 		}
@@ -549,8 +552,10 @@ void executeOpcode(unsigned char opcode)
 		/*LD (HL-),A */
 		/*LDD (HL),A*/ case 0x32:
 		{
-			int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
-			ram[regHL]= registers.A;
+			//int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
+			short int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
+			writeRam(regHL, registers.A);
+			//ram[regHL]= registers.A;
 			regHL--;
 			registers.H = (regHL >> 8) & 0xFF;
 			registers.L = regHL & 0xFF;
@@ -576,8 +581,10 @@ void executeOpcode(unsigned char opcode)
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
-			int n = ram[programCounter] & 0xFF;
-			ram[0xFF00 + n] = registers.A;
+			//int n = ram[programCounter] & 0xFF;
+			unsigned char n = readRam(programCounter);
+			writeRam(0xFF00 + n, registers.A);
+			//ram[0xFF00 + n] = registers.A;
 			programCounter++;
 			break;
 		}
@@ -585,8 +592,10 @@ void executeOpcode(unsigned char opcode)
 		/*LDH A,(n)*/
 		/*LD A,($FF00+n)*/ case 0xF0:
 		{
-			int n = ram[programCounter] & 0xFF;
+			//int n = ram[programCounter] & 0xFF;
+			unsigned char n = readRam(programCounter);
 			//registers.A = ram[0xFF00 + n] & 0xFF;
+			//registers.A = readRam(0xFF00+n);
 			registers.A = 0x3E;
 			programCounter++;
 			break;
@@ -600,8 +609,10 @@ void executeOpcode(unsigned char opcode)
 			break;
 		}
 		/*LD HL,nn*/ case 0x21: {
-			registers.L = ram[programCounter];
-			registers.H = ram[++programCounter];
+			//registers.L = ram[programCounter];
+			//registers.H = ram[++programCounter];
+			registers.L = readRam(programCounter);
+			registers.H = readRam(++programCounter);
 			programCounter++;
 			break;
 		}
@@ -990,7 +1001,9 @@ void executeOpcode(unsigned char opcode)
 		}
 		/*CP #*/ case 0xFE:
 		{
-			unsigned char res = registers.A - ram[programCounter];
+			//unsigned char res = registers.A - ram[programCounter];
+			unsigned char n = readRam(programCounter);
+			unsigned char res = registers.A - n;
 			if (res == 0)
 			{
 				flags.Z = 1;
@@ -1001,9 +1014,10 @@ void executeOpcode(unsigned char opcode)
 			}
 			
 			flags.N = 1;
-			flags.H = (((registers.A) ^ ram[programCounter] ^ res) & 0x10) >> 4;
-			registers.A < ram[programCounter] ? flags.C = 1 : flags.C = 0;
-			if ((unsigned)registers.A < (unsigned)ram[programCounter]) {
+			//flags.H = (((registers.A) ^ ram[programCounter] ^ res) & 0x10) >> 4;
+			flags.H = (((registers.A) ^ n ^ res) & 0x10) >> 4;
+			registers.A < n ? flags.C = 1 : flags.C = 0;
+			if ((unsigned)registers.A < n) {
 				flags.C = 1;
 			}
 			else flags.C = 0;
@@ -1078,22 +1092,6 @@ void executeOpcode(unsigned char opcode)
 			flags.H = (((registers.B) ^ (1) ^ res) & 0x10) >> 4;
 			tmp--;
 			registers.B = tmp;
-			//if (registers.B == 0x00)
-			//{
-			//	registers.B = 0xFF;
-			//	flags.Z = 0x0;
-
-			//}
-			//else if (registers.B - 1 == 0x0)
-			//{
-			//	flags.Z = 0x1;
-			//	registers.B--;
-			//}
-			//else 
-			//{
-			//	registers.B--;
-			//	flags.Z = 0x0;
-			//}
 
 			flags.N = 0x1;
 
@@ -1716,7 +1714,9 @@ void executeOpcode(unsigned char opcode)
 
 		/*JP nn*/ case 0xC3:
 		{
-		    int newAddressToJumpTo = ((ram[programCounter + 1] << 8) + (ram[programCounter]&0xFF));
+			//int newAddressToJumpTo = ((ram[programCounter + 1] << 8) + (ram[programCounter] & 0xFF));
+
+			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 			programCounter = newAddressToJumpTo;
 			break;
 		}
@@ -1751,7 +1751,8 @@ void executeOpcode(unsigned char opcode)
 		{
 			if (flags.Z == 0x00)
 			{
-				programCounter += (signed)ram[programCounter];
+				//programCounter += (signed)ram[programCounter];
+				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
 			}
 			else programCounter++;

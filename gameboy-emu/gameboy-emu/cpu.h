@@ -11,12 +11,12 @@ void initialize();
 int fetchOpcode();
 void executeOpcode(unsigned char);
 void updateFlagRegister();
-char readRam(short int address);
-void writeRam(short int address, char data);
-void writeRam(short int address, short int data);
+unsigned char readRam(unsigned short address);
+void writeRam(unsigned short  address, char data);
+void writeRam(unsigned short  address, unsigned short  data);
 
 unsigned char ram[65536];
-short int stackPointer = 0, programCounter = 0;
+unsigned short stackPointer = 0, programCounter = 0;
 int MAXCYCLESPERSECOND = 69905;
 
 struct reg
