@@ -1,3 +1,7 @@
+#ifdef _MSC_VER
+#define _CRT_SECURE_NO_WARNINGS
+#endif
+
 #include "cpu.h"
 #include "opcodes.h"
 #include <fstream>
@@ -72,29 +76,77 @@ void updateFlagRegister()
 
 void loadRom(const char *romName)
 {
-	std::ifstream rom(romName, std::ifstream::binary);
+	//std::ifstream rom(romName, std::ifstream::binary);
 
-	rom.seekg(0, rom.end);
-	int length = rom.tellg();
-	rom.seekg(0, rom.beg);
+	//rom.seekg(0, rom.end);
+	//int length = rom.tellg();
+	//rom.seekg(0, rom.beg);
 
-	if (rom)
-		rom.read(ram, length);
+	//if (rom)
+	//	rom.read(ram, length);
+	//else
+	//	std::cout << "Couldn't open following rom: " << romName;
+
+	//if (rom)
+	//	std::cout << "Rom opened successfully." << std::endl;
+	//else
+	//	std::cout << "Error: only " << rom.gcount() << " could be read" << std::endl;
+
+	////Close rom, since it's now loaded into ram
+	//rom.close();
+
+	//
+
+	std::FILE* fp = fopen(romName, "rb");
+	if (!fp)
+	{
+		std::cout << "ROM could not be loaded." << std::endl;
+	}
 	else
-		std::cout << "Couldn't open following rom: " << romName;
+	{
+		fread(ram, 1, 0x8000, fp);
+	}
+}
 
-	if (rom)
-		std::cout << "Rom opened successfully." << std::endl;
-	else
-		std::cout << "Error: only " << rom.gcount() << " could be read" << std::endl;
+char readRam(short int address)
+{
+	return ram[address] & 0xFF;
+}
 
-	//Close rom, since it's now loaded into ram
-	rom.close();
+/*8 Bit writes*/
+void writeRam(short int address, char data)
+{
+	/*0x0000 - 0x7FFF is read only*/
+	if (address > 0x7FFF)
+	{
+		if (address >= 0xE000 && address < 0xFE00)
+		{
+			ram[address] = data;
+			writeRam(address - 0x2000, data);
+		}
+
+		else if (address >= 0xFEA0 && address < 0xFF80)
+		{
+
+		}
+
+		else
+		{
+			ram[address] = data;
+		}
+	}
+}
+
+/*16 bit writes*/
+//TODO
+void writeRam(short int address, short int data)
+{
+
 }
 
 int fetchOpcode()
 {
-	int opcode = 0;
+	unsigned char opcode = 0;
 
 	//for (int i = 0; i < opcodes.at(ram[programCounter]); i++)
 	//{
@@ -102,19 +154,23 @@ int fetchOpcode()
 	//}
 
 
-	opcode = ram[programCounter] & 0xFF;
-	if (opcode == 0x00CB)
-	{
-		programCounter++;
-		opcode = opcode << 8 | ram[programCounter];
-	}
+	//opcode = ram[programCounter] & 0xFF;
+	opcode = readRam(programCounter);
 
-	if (opcode == 0x10)
-	{
-		//ram[++programCounter] == 0x00 ? opcode = (opcode << 8 | ram[programCounter]) : programCounter--;
-		if (ram[programCounter + 1] == 0x00)
-			opcode = (opcode << 8 | ram[++programCounter]);
-	}
+	//TODO:
+	//Both cases (0xCB and 0x10) can be easily solved with an additional nested switch
+	//if (opcode == 0x00CB)
+	//{
+	//	programCounter++;
+	//	opcode = opcode << 8 | readRam(programCounter);
+	//}
+
+	//if (opcode == 0x10)
+	//{
+	//	//ram[++programCounter] == 0x00 ? opcode = (opcode << 8 | ram[programCounter]) : programCounter--;
+	//	if (readRam(programCounter+1) == 0x00)
+	//		opcode = (opcode << 8 | readRam(++programCounter));
+	//}
 	programCounter++;
 	//std::cout << "Opcode: " << std::hex << opcode << std::endl;
 
@@ -123,7 +179,7 @@ int fetchOpcode()
 
 //0xF0 (0x02B2 PC) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 
 //Dem nachgehen.
-void executeOpcode(int opcode)
+void executeOpcode(unsigned char opcode)
 {
 	switch (opcode)
 	{

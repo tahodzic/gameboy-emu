@@ -9,10 +9,13 @@
 void loadRom(const char *);
 void initialize();
 int fetchOpcode();
-void executeOpcode(int);
+void executeOpcode(unsigned char);
 void updateFlagRegister();
+char readRam(short int address);
+void writeRam(short int address, char data);
+void writeRam(short int address, short int data);
 
-char ram[65536];
+unsigned char ram[65536];
 short int stackPointer = 0, programCounter = 0;
 int MAXCYCLESPERSECOND = 69905;
 
