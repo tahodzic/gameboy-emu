@@ -21,18 +21,47 @@ int main()
 void initialize()
 {
 	programCounter = 0x100;
-	stackPointer = 0xE000; //stack: from $C000 - $DFFF of ram, grows downward
-	registers.A = 0x1;
+	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
+	registers.A = 0x01;
 	registers.F = 0xB0;
-	registers.B = 0x0;
+	registers.B = 0x00;
 	registers.C = 0x13;
-	registers.D = 0x0;
+	registers.D = 0x00;
 	registers.E = 0xD8;
 	registers.H = 0x01;
 	registers.L = 0x4D;
-	flags.Z = 0x1;
-	flags.H = 0x1;
-	flags.C = 0x1;
+	updateFlagRegister();
+	ram[0xFF05] = 0x00;
+	ram[0xFF06] = 0x00;
+	ram[0xFF07] = 0x00;
+	ram[0xFF10] = 0x80;
+	ram[0xFF11] = 0xBF;
+	ram[0xFF12] = 0xF3;
+	ram[0xFF14] = 0xBF;
+	ram[0xFF16] = 0x3F;
+	ram[0xFF17] = 0x00;
+	ram[0xFF19] = 0xBF;
+	ram[0xFF1A] = 0x7F;
+	ram[0xFF1B] = 0xFF;
+	ram[0xFF1C] = 0x9F;
+	ram[0xFF1E] = 0xBF;
+	ram[0xFF20] = 0xFF;
+	ram[0xFF21] = 0x00;
+	ram[0xFF22] = 0x00;
+	ram[0xFF23] = 0xBF;
+	ram[0xFF24] = 0x77;
+	ram[0xFF25] = 0xF3;
+	ram[0xFF26] = 0xF1;
+	ram[0xFF40] = 0x91;
+	ram[0xFF42] = 0x00;
+	ram[0xFF43] = 0x00;
+	ram[0xFF45] = 0x00;
+	ram[0xFF47] = 0xFC;
+	ram[0xFF48] = 0xFF;
+	ram[0xFF49] = 0xFF;
+	ram[0xFF4A] = 0x00;
+	ram[0xFF4B] = 0x00;
+	ram[0xFFFF] = 0x00;
 
 }
 
@@ -87,7 +116,7 @@ int fetchOpcode()
 			opcode = (opcode << 8 | ram[++programCounter]);
 	}
 	programCounter++;
-	std::cout << "Opcode: " << std::hex << opcode << std::endl;
+	//std::cout << "Opcode: " << std::hex << opcode << std::endl;
 
 	return opcode;
 }
@@ -501,7 +530,8 @@ void executeOpcode(int opcode)
 		/*LD A,($FF00+n)*/ case 0xF0:
 		{
 			int n = ram[programCounter] & 0xFF;
-			registers.A = ram[0xFF00 + n] & 0xFF;
+			//registers.A = ram[0xFF00 + n] & 0xFF;
+			registers.A = 0x3E;
 			programCounter++;
 			break;
 		}
@@ -904,6 +934,25 @@ void executeOpcode(int opcode)
 		}
 		/*CP #*/ case 0xFE:
 		{
+			unsigned char res = registers.A - ram[programCounter];
+			if (res == 0)
+			{
+				flags.Z = 1;
+			}
+			else
+			{
+				flags.Z = 0;
+			}
+			
+			flags.N = 1;
+			flags.H = (((registers.A) ^ ram[programCounter] ^ res) & 0x10) >> 4;
+			registers.A < ram[programCounter] ? flags.C = 1 : flags.C = 0;
+			if ((unsigned)registers.A < (unsigned)ram[programCounter]) {
+				flags.C = 1;
+			}
+			else flags.C = 0;
+
+
 			break;
 		}
 

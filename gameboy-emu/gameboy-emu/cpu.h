@@ -14,6 +14,7 @@ void updateFlagRegister();
 
 char ram[65536];
 short int stackPointer = 0, programCounter = 0;
+int MAXCYCLESPERSECOND = 69905;
 
 struct reg
 {
