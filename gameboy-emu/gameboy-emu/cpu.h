@@ -1,7 +1,4 @@
-
-
 #pragma once
-
 
 #ifndef CPU_H
 #define CPU_H
@@ -13,11 +10,16 @@
 #define JOYPAD 16
 #define IR_REQUEST_ADDRESS 0xFF0F
 #define IR_ENABLE_ADDRESS 0xFFFF
+#define MAX_CYCLES_PER_SECOND 69905
+#define CYCLES_PER_SCAN_LINE 456
+#define LCDC_CTRL 0xFF40
+#define LCDC_STAT 0xFF41
+#define LCDC_LY 0xFF44
 
 unsigned char ram[65536];
-unsigned short stackPointer = 0, programCounter = 0;
-int MAXCYCLESPERSECOND = 69905;
-
+unsigned short stackPointer, programCounter;
+int nofCycles;
+int cyclesScanLine;
 /*Interrupts*/
 /*
 Bit 0: V-Blank Interupt
@@ -30,29 +32,29 @@ char imeFlag;
 
 struct reg
 {
-	char A = 0x00;
-	char B = 0x00;
-	char C = 0x00;
-	char D = 0x00;
-	char E = 0x00;
-	char F = 0x00;
-	char H = 0x00;
-	char L = 0x00;
+	char A;
+	char B;
+	char C;
+	char D;
+	char E;
+	char F;
+	char H;
+	char L;
 } registers;
 
 struct flag
 {
-	char Z = 0x00;
-	char N = 0x00;
-	char H = 0x00;
-	char C = 0x00;
+	char Z;
+	char N;
+	char H;
+	char C;
 } flags;
 
 
 void loadRom(const char *);
 void initialize();
 int fetchOpcode();
-void executeOpcode(unsigned char);
+int executeOpcode(unsigned char);
 void updateFlagRegister();
 unsigned char readRam(unsigned short address);
 void writeRam(unsigned short  address, char data);
@@ -62,5 +64,9 @@ unsigned short popFromStack();
 void requestInterrupt(int interruptNumber);
 void checkInterruptRequests();
 void serviceInterrupt(int interruptNumber);
+void updateGraphics(int cycles);
+void drawScanLine();
+void setLcdStatus();
+bool isLcdEnabled();
 
 #endif

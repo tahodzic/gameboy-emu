@@ -3,7 +3,6 @@
 #endif
 
 #include "cpu.h"
-#include "opcodes.h"
 #include <fstream>
 #include <iostream>
 
@@ -12,11 +11,13 @@ int main()
 	initialize();
 	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
 
-	while(1)
+	while(nofCycles < MAX_CYCLES_PER_SECOND)
 	{
-		executeOpcode(fetchOpcode());
+		int cycles = executeOpcode(fetchOpcode());
+			nofCycles += cycles;
 		updateFlagRegister();
 		checkInterruptRequests();
+		updateGraphics(cycles);
 	}
 
 
@@ -25,6 +26,7 @@ int main()
 
 void initialize()
 {
+	cyclesScanLine = CYCLES_PER_SCAN_LINE;
 	programCounter = 0x100;
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
 	registers.A = 0x01;
@@ -206,29 +208,29 @@ void checkInterruptRequests()
 	{
 		if (imeFlag == 1)
 		{
-			if (irRequestFlagStatus & VERTICAL_BLANKING == 1)
+			if (irRequestFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
 			{
-				if(irEnableFlagStatus & VERTICAL_BLANKING == 1)
+				if(irEnableFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
 					serviceInterrupt(VERTICAL_BLANKING);
 			}
-			else if (irRequestFlagStatus & LCDC == 1)
+			else if (irRequestFlagStatus & LCDC == LCDC)
 			{
-				if (irEnableFlagStatus & LCDC == 1)
+				if (irEnableFlagStatus & LCDC == LCDC)
 					serviceInterrupt(LCDC);
 			}
-			else if (irRequestFlagStatus & TIMER_OVERFLOW == 1)
+			else if (irRequestFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
 			{
-				if (irEnableFlagStatus & TIMER_OVERFLOW == 1)
+				if (irEnableFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
 					serviceInterrupt(TIMER_OVERFLOW);
 			}
-			else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == 1)
+			else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
 			{
-				if(irEnableFlagStatus & SERIAL_IO_COMPLETION == 1)
+				if(irEnableFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
 					serviceInterrupt(SERIAL_IO_COMPLETION);
 			}
-			else if (irRequestFlagStatus & JOYPAD == 1)
+			else if (irRequestFlagStatus & JOYPAD == JOYPAD)
 			{
-				if(irEnableFlagStatus & JOYPAD == 1)
+				if(irEnableFlagStatus & JOYPAD == JOYPAD)
 					serviceInterrupt(JOYPAD);
 			}
 
@@ -253,16 +255,134 @@ void serviceInterrupt(int interruptNumber)
 	}
 }
 
+void updateGraphics(int cycles)
+{
+	setLcdStatus();
+
+	if (isLcdEnabled())
+	{
+		cyclesScanLine -= cycles;
+
+
+	}
+
+	/*when cyclesScanLine is 0, then one entire scanLine has been drawn.*/
+	if (cyclesScanLine <= 0)
+	{
+		unsigned short currentLine = readRam(LCDC_LY);
+		writeRam(LCDC_LY, ++currentLine);
+
+		cyclesScanLine = CYCLES_PER_SCAN_LINE;
+
+		if (currentLine < 144)
+			drawScanLine();
+
+		else if (currentLine == 144)
+			requestInterrupt(VERTICAL_BLANKING);
+
+		else if (currentLine > 153)
+			writeRam(LCDC_LY, (unsigned short)0);
+
+
+	}
+}
+
+void drawScanLine()
+{
+
+}
+
+void setLcdStatus()
+{
+	unsigned short status = readRam(LCDC_STAT);
+	if (!isLcdEnabled())
+	{
+		cyclesScanLine = CYCLES_PER_SCAN_LINE;
+		writeRam(LCDC_LY, (unsigned short)0);
+
+		//set mode to 01 (vblank mode)
+		status |= 0x01;
+		writeRam(LCDC_STAT, (unsigned short)1);
+	}
+	else
+	{
+		unsigned short currentLine = readRam(LCDC_LY);
+		unsigned short currentMode = status & 0x03;
+
+		unsigned short modeToSet = 0;
+		unsigned short requestInt = 0;
+
+		if (currentLine > 144)
+		{
+			modeToSet = 0x01;
+			status &= 0xFC; //delete status bits
+			status |= modeToSet;
+			requestInt = status & 0x10;
+
+		}
+		else
+		{
+			int mode2bounds = 456 - 80;
+			int mode3bounds = mode2bounds - 172;
+
+			if (cyclesScanLine >= mode2bounds)
+			{
+				modeToSet = 0x02;
+				status &= 0xFC;
+				status |= modeToSet;
+				requestInt = status & 0x20;
+			}
+			else if (cyclesScanLine >= mode3bounds)
+			{
+				modeToSet = 0x03;
+				status &= 0xFC;
+				status |= modeToSet;
+			}
+			else
+			{
+				modeToSet = 0x00;
+				status &= 0xFC;
+				status |= modeToSet;
+				requestInt = status & 0x08;
+			}
+		
+		}
+
+		if (requestInt && (modeToSet != currentMode))
+			requestInterrupt(0x01);
+
+		if (currentLine == readRam(0xFF45))
+		{
+			status |= 0x02;
+			if (status & 0x40 == 0x40)
+				requestInterrupt(0x01);
+		}
+		else
+		{
+			status &= 0xFD;
+		}
+
+		writeRam(LCDC_STAT, status);
+
+
+
+	}
+}
+
+bool isLcdEnabled()
+{
+	return (readRam(LCDC_CTRL) & 0x80) == 0x80;
+}
 
 //0xF0 (0x02B2 PC) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 
 //Dem nachgehen.
-void executeOpcode(unsigned char opcode)
+int executeOpcode(unsigned char opcode)
 {
 	switch (opcode)
 	{
 		case 0x00:
 		{
-			break;
+			return 4;
 		}
 
 
@@ -274,7 +394,7 @@ void executeOpcode(unsigned char opcode)
 			//registers.B = ram[programCounter];
 			registers.B = readRam(programCounter);
 			programCounter++;
-			break;
+			return 8;
 		}
 		/*LD C, n*/
 		case 0x0E:
