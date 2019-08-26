@@ -6,14 +6,6 @@
 #ifndef CPU_H
 #define CPU_H
 
-void loadRom(const char *);
-void initialize();
-int fetchOpcode();
-void executeOpcode(unsigned char);
-void updateFlagRegister();
-unsigned char readRam(unsigned short address);
-void writeRam(unsigned short  address, char data);
-void writeRam(unsigned short  address, unsigned short  data);
 
 unsigned char ram[65536];
 unsigned short stackPointer = 0, programCounter = 0;
@@ -40,5 +32,14 @@ struct flag
 } flags;
 
 char imeFlag;
+
+void loadRom(const char *);
+void initialize();
+int fetchOpcode();
+void executeOpcode(unsigned char);
+void updateFlagRegister();
+unsigned char readRam(unsigned short address);
+void writeRam(unsigned short  address, char data);
+void writeRam(unsigned short  address, unsigned short  data);
 
 #endif
