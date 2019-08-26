@@ -16,6 +16,7 @@ int main()
 	{
 		executeOpcode(fetchOpcode());
 		updateFlagRegister();
+		checkInterruptRequests();
 	}
 
 
@@ -176,6 +177,82 @@ int fetchOpcode()
 
 	return opcode;
 }
+
+void pushToStack(unsigned short data)
+{
+	stackPointer += 2;
+	writeRam(stackPointer, data);
+}
+
+unsigned short popFromStack()
+{
+	unsigned short popValue = readRam(stackPointer);
+	stackPointer -= 2;
+	return popValue;
+}
+
+void requestInterrupt(int interruptNumber)
+{
+	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	irRequestFlagStatus = irRequestFlagStatus | interruptNumber;
+	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
+}
+
+void checkInterruptRequests()
+{
+	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	char irEnableFlagStatus = readRam(IR_ENABLE_ADDRESS);
+	if (irRequestFlagStatus > 0)
+	{
+		if (imeFlag == 1)
+		{
+			if (irRequestFlagStatus & VERTICAL_BLANKING == 1)
+			{
+				if(irEnableFlagStatus & VERTICAL_BLANKING == 1)
+					serviceInterrupt(VERTICAL_BLANKING);
+			}
+			else if (irRequestFlagStatus & LCDC == 1)
+			{
+				if (irEnableFlagStatus & LCDC == 1)
+					serviceInterrupt(LCDC);
+			}
+			else if (irRequestFlagStatus & TIMER_OVERFLOW == 1)
+			{
+				if (irEnableFlagStatus & TIMER_OVERFLOW == 1)
+					serviceInterrupt(TIMER_OVERFLOW);
+			}
+			else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == 1)
+			{
+				if(irEnableFlagStatus & SERIAL_IO_COMPLETION == 1)
+					serviceInterrupt(SERIAL_IO_COMPLETION);
+			}
+			else if (irRequestFlagStatus & JOYPAD == 1)
+			{
+				if(irEnableFlagStatus & JOYPAD == 1)
+					serviceInterrupt(JOYPAD);
+			}
+
+		}
+		
+	}
+}
+
+void serviceInterrupt(int interruptNumber)
+{
+	imeFlag = 0;
+	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	irRequestFlagStatus = irRequestFlagStatus & !interruptNumber;
+	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
+	switch (interruptNumber)
+	{
+		case VERTICAL_BLANKING: programCounter = 0x40; break;
+		case LCDC: programCounter = 0x48; break;
+		case TIMER_OVERFLOW: programCounter = 0x50; break;
+		case SERIAL_IO_COMPLETION: programCounter = 0x58; break;
+		case JOYPAD: programCounter = 0x60; break;
+	}
+}
+
 
 //0xF0 (0x02B2 PC) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 
 //Dem nachgehen.
