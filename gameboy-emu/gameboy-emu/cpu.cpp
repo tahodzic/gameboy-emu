@@ -399,49 +399,86 @@ void renderTiles()
 		// bits, however, go from right to left (from low number to high number)
 		// so if you want the bit at xPos 0 you need bit number 7
 		int colourBit = xPos % 8;
-		colourBit -= 7;
-		colourBit *= -1;
+		/*colourBit -= 7;
+		colourBit *= -1;*/
+		colourBit = 7 - colourBit;
 
 		// combine data 2 and data 1 to get the colour id for this pixel
 		// in the tile
-		int colourNum = (data2 & colourBit) ? 1 : 0;
-		colourNum <<= 1;
-		colourNum |= ((data1 & colourBit) ? 1 : 0);
+		int dotData = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+		dotData <<= 1;
+		dotData |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
 
 		//lets get the shade from the palette at 0xFF47
-		unsigned short palette = readRam(0xFF47);
+		unsigned char palette = readRam(0xFF47);
 		int shade;
-		switch (colourBit)
+		
+		//replaces below switch
+		shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
+		shade <<= 1;
+		shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
+
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+
+		// setup the RGB values
+		switch (shade)
 		{
-			case 3: //Bit 7-6
-			{
-				shade = (palette & 0x80) ? 1 : 0;
-				shade <<= 1;
-				shade |= (palette & 0x40) ? 1 : 0;
-				break;
-			}
-			case 2: //Bit 5-4
-			{
-				shade = (palette & 0x20) ? 1 : 0;
-				shade <<= 1;
-				shade |= (palette & 0x10) ? 1 : 0;
-				break;
-			}
-			case 1: //Bit 3-2
-			{
-				shade = (palette & 0x08) ? 1 : 0;
-				shade <<= 1;
-				shade |= (palette & 0x04) ? 1 : 0;
-				break;
-			}
-			case 0: //Bit 1-0
-			{
-				shade = (palette & 0x02) ? 1 : 0;
-				shade <<= 1;
-				shade |= (palette & 0x01) ? 1 : 0;
-				break;
-			}
+			case 0: red = 255;  green = 255; blue = 255; break;
+			case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+			case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 		}
+
+		int ly = readRam(0xFF44);
+
+		// safety check to make sure what im about
+		// to set is int the 160x144 bounds
+		if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
+		{
+			//skip this cycle of the loop
+		}
+		else 
+		{
+			screenData[pixel][ly][0] = red;
+			screenData[pixel][ly][1] = green;
+			screenData[pixel][ly][2] = blue;
+		}
+		//switch (dotData)
+		//{
+		//	case 3: //Bit 7-6
+		//	{
+		//		shade = (palette & 0x80) ? 1 : 0;
+		//		shade <<= 1;
+		//		shade |= (palette & 0x40) ? 1 : 0;
+		//		break;
+		//	}
+		//	case 2: //Bit 5-4
+		//	{
+		//		shade = (palette & 0x20) ? 1 : 0;
+		//		shade <<= 1;
+		//		shade |= (palette & 0x10) ? 1 : 0;
+		//		break;
+		//	}
+		//	case 1: //Bit 3-2
+		//	{
+		//		shade = (palette & 0x08) ? 1 : 0;
+		//		shade <<= 1;
+		//		shade |= (palette & 0x04) ? 1 : 0;
+		//		break;
+		//	}
+		//	case 0: //Bit 1-0
+		//	{
+		//		shade = (palette & 0x02) ? 1 : 0;
+		//		shade <<= 1;
+		//		shade |= (palette & 0x01) ? 1 : 0;
+		//		break;
+		//	}
+
+		//}
+
+
 	}
 }
 

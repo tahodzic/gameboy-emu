@@ -28,7 +28,7 @@ Bit 2: Timer Interupt
 Bit 4: Joypad Interupt
 */
 char imeFlag;
-
+unsigned char screenData[160][144][3]
 
 struct reg
 {
@@ -73,3 +73,7 @@ void renderSprites();
 void renderTiles();
 
 #endif
+
+
+
+
