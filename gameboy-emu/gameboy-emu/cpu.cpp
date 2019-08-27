@@ -133,6 +133,10 @@ void writeRam(unsigned short address,  char data)
 
 		}
 
+		else if (address == 0xFF46)
+		{
+			startDmaTransfer(data);
+		}
 		else
 		{
 			ram[address] = data;
@@ -140,6 +144,14 @@ void writeRam(unsigned short address,  char data)
 	}
 }
 
+void startDmaTransfer(char data)
+{
+	unsigned short address = data << 8;
+	for (int i = 0; i < 0xA0; i++)
+	{
+		writeRam(0xFE00 + i, (char)readRam(address + i));
+	}
+}
 /*16 bit writes*/
 //TODO
 void writeRam(unsigned short address, unsigned short data)
@@ -262,8 +274,6 @@ void updateGraphics(int cycles)
 	if (isLcdEnabled())
 	{
 		cyclesScanLine -= cycles;
-
-
 	}
 
 	/*when cyclesScanLine is 0, then one entire scanLine has been drawn.*/
@@ -282,14 +292,172 @@ void updateGraphics(int cycles)
 
 		else if (currentLine > 153)
 			writeRam(LCDC_LY, (unsigned short)0);
-
-
 	}
 }
 
-void drawScanLine()
+void renderTiles()
+{
+	unsigned short tileData = 0, bgMemory = 0;
+	bool unsign = true;
+
+
+	unsigned char scrollY = readRam(0xFF42);
+	unsigned char scrollX = readRam(0xFF43);
+	unsigned char windowY = readRam(0xFF4A);
+	unsigned char windowX = readRam(0xFF4B) - 7;
+	
+
+	bool useWindow = false;
+	unsigned char control = readRam(LCDC_CTRL);
+
+
+
+	//window enabled?
+	if (control & 0x20)
+	{
+		if (windowY <= readRam(LCDC_LY))
+			useWindow = true;
+
+	}
+
+	if (control & 0x10)
+	{
+		tileData = 0x8000;
+	}
+	else
+	{
+		tileData = 0x8800;
+		unsign = false;
+	}
+
+	if (!useWindow)
+	{
+		if (control & 0x08)
+			bgMemory = 0x9C00;
+		else
+			bgMemory = 0x9800;
+
+	}
+	else
+	{
+		if(control & 0x40)
+			bgMemory = 0x9C00;
+		else
+			bgMemory = 0x9800;
+	}
+
+	unsigned char yPos = 0;
+
+	if (useWindow)
+		yPos = readRam(LCDC_LY) - windowY;
+	else
+		yPos = scrollY + readRam(LCDC_LY);
+
+	// which of the 8 vertical pixels of the current
+	// tile is the scanline on?
+	unsigned short tileRow = (((unsigned char)(yPos / 8)) * 32);
+
+
+
+	for (int pixel = 0; pixel < 160; pixel++)
+	{
+		unsigned char xPos = pixel + scrollX;
+
+		if (useWindow)
+		{
+			if (pixel >= windowX)
+				xPos = pixel - windowX;
+		}
+		unsigned short tileCol = (xPos / 8);
+		short tileNum;
+
+		unsigned short tileAddress = bgMemory + tileRow + tileCol;
+
+		if (unsign)
+			tileNum = (unsigned char)readRam(tileAddress);
+		else
+			tileNum = (char)readRam(tileAddress);
+
+		unsigned short tileLocation = tileData;
+
+		if (unsign)
+			tileLocation += (tileNum * 16);
+		else
+			tileLocation += ((tileNum + 128) * 16);
+
+		
+		unsigned char line = yPos % 8;
+		line *= 2; // each vertical line takes up two bytes of memory
+		unsigned char data1 = readRam(tileLocation + line);
+		unsigned char data2 = readRam(tileLocation + line + 1);
+
+
+		// pixel 0 in the tile is bit 7 of data 1 and data 2
+		// Pixel 1 in the tile is bit 6 of data 1 and data 2 etc.
+		// hence the order needs to be turnt around
+		// xPos goes from left to right (from low number to high number)
+		// bits, however, go from right to left (from low number to high number)
+		// so if you want the bit at xPos 0 you need bit number 7
+		int colourBit = xPos % 8;
+		colourBit -= 7;
+		colourBit *= -1;
+
+		// combine data 2 and data 1 to get the colour id for this pixel
+		// in the tile
+		int colourNum = (data2 & colourBit) ? 1 : 0;
+		colourNum <<= 1;
+		colourNum |= ((data1 & colourBit) ? 1 : 0);
+
+		//lets get the shade from the palette at 0xFF47
+		unsigned short palette = readRam(0xFF47);
+		int shade;
+		switch (colourBit)
+		{
+			case 3: //Bit 7-6
+			{
+				shade = (palette & 0x80) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & 0x40) ? 1 : 0;
+				break;
+			}
+			case 2: //Bit 5-4
+			{
+				shade = (palette & 0x20) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & 0x10) ? 1 : 0;
+				break;
+			}
+			case 1: //Bit 3-2
+			{
+				shade = (palette & 0x08) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & 0x04) ? 1 : 0;
+				break;
+			}
+			case 0: //Bit 1-0
+			{
+				shade = (palette & 0x02) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & 0x01) ? 1 : 0;
+				break;
+			}
+		}
+	}
+}
+
+void renderSprites()
 {
 
+}
+
+
+void drawScanLine()
+{
+	unsigned char control = readRam(LCDC_CTRL);
+	if (control & 0x1 == 0x1)
+		renderTiles();
+	if (control & 0x1 == 0x1)
+		renderSprites();
 }
 
 void setLcdStatus()
@@ -402,7 +570,7 @@ int executeOpcode(unsigned char opcode)
 			//registers.C = ram[programCounter];
 			registers.C = readRam(programCounter);
 			programCounter++;
-			break;
+			return 8;
 
 		}
 		/*LD D, n*/
@@ -681,7 +849,7 @@ int executeOpcode(unsigned char opcode)
 			//registers.A = ram[programCounter];
 			registers.A = readRam(programCounter);
 			programCounter++;
-			break;
+			return 8;
 		}
 
 
@@ -756,7 +924,7 @@ int executeOpcode(unsigned char opcode)
 			regHL--;
 			registers.H = (regHL >> 8) & 0xFF;
 			registers.L = regHL & 0xFF;
-			break;
+			return 8;
 		}
 
 		/*LD A,(HLI) */
@@ -783,7 +951,7 @@ int executeOpcode(unsigned char opcode)
 			writeRam(0xFF00 + n, registers.A);
 			//ram[0xFF00 + n] = registers.A;
 			programCounter++;
-			break;
+			return 12;
 		}
 
 		/*LDH A,(n)*/
@@ -795,7 +963,7 @@ int executeOpcode(unsigned char opcode)
 			//registers.A = readRam(0xFF00+n);
 			registers.A = 0x3E;
 			programCounter++;
-			break;
+			return 12;
 		}
 
 		/*LD n,nn*/
@@ -811,7 +979,7 @@ int executeOpcode(unsigned char opcode)
 			registers.L = readRam(programCounter);
 			registers.H = readRam(++programCounter);
 			programCounter++;
-			break;
+			return 12;
 		}
 		/*LD SP,nn*/ case 0x31: {
 			break;
@@ -1127,7 +1295,7 @@ int executeOpcode(unsigned char opcode)
 			flags.N = 0x0;
 			flags.C = 0x0;
 			flags.H = 0x0;
-			break;
+			return 4;
 		}
 		/*XOR B*/ case 0xA8:
 		{
@@ -1220,7 +1388,7 @@ int executeOpcode(unsigned char opcode)
 			else flags.C = 0;
 
 
-			break;
+			return 8;
 		}
 
 
@@ -1274,7 +1442,7 @@ int executeOpcode(unsigned char opcode)
 			registers.A = tmp;
 			flags.N = 0x1;
 
-			break;
+			return 4;
 		}
 		/*DEC B*/ case 0x05:
 		{
@@ -1294,7 +1462,7 @@ int executeOpcode(unsigned char opcode)
 
 
 
-			break;
+			return 4;
 		}
 		/*DEC C*/ case 0x0D:
 		{
@@ -1311,7 +1479,7 @@ int executeOpcode(unsigned char opcode)
 			registers.C = tmp;
 			flags.N = 0x1;
 
-			break;
+			return 4;
 		}
 		/*DEC D*/ case 0x15:
 		{
@@ -1329,7 +1497,7 @@ int executeOpcode(unsigned char opcode)
 			flags.N = 0x1;
 
 			
-			break;
+			return 4;
 		}
 		/*DEC E*/ case 0x1D:
 		{
@@ -1347,7 +1515,7 @@ int executeOpcode(unsigned char opcode)
 			flags.N = 0x1;
 
 			
-			break;
+			return 4;
 		}
 		/*DEC H*/ case 0x25:
 		{
@@ -1365,7 +1533,7 @@ int executeOpcode(unsigned char opcode)
 			flags.N = 0x1;
 
 			
-			break;
+			return 4;
 		}
 		/*DEC L*/ case 0x2D:
 		{
@@ -1383,7 +1551,7 @@ int executeOpcode(unsigned char opcode)
 			flags.N = 0x1;
 
 			
-			break;
+			return 4;
 		}
 		/*DEC (HL)*/ case 0x35:
 		{
@@ -1915,7 +2083,7 @@ int executeOpcode(unsigned char opcode)
 
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 			programCounter = newAddressToJumpTo;
-			break;
+			return 16;
 		}
 
 		/*JP NZ,nn*/ case 0xC2:
@@ -1953,7 +2121,7 @@ int executeOpcode(unsigned char opcode)
 				programCounter++;
 			}
 			else programCounter++;
-			break;
+			return 8;
 		}
 		/*JR Z,* */case 0x28:
 		{

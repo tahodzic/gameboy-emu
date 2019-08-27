@@ -68,5 +68,8 @@ void updateGraphics(int cycles);
 void drawScanLine();
 void setLcdStatus();
 bool isLcdEnabled();
+void startDmaTransfer(char data);
+void renderSprites();
+void renderTiles();
 
 #endif
