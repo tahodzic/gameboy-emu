@@ -6,26 +6,46 @@
 #include <fstream>
 #include <iostream>
 
-int main()
-{
-	initialize();
-	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
 
-	while(nofCycles < MAX_CYCLES_PER_SECOND)
+
+	int cyclesScanLine;
+	unsigned short stackPointer, programCounter;
+	/*Interrupts*/
+	/*
+	Bit 0: V-Blank Interupt
+	Bit 1: LCD Interupt
+	Bit 2: Timer Interupt
+	Bit 4: Joypad Interupt
+	*/
+	char imeFlag;
+	unsigned char screenData[160][144][3];
+
+	struct reg
 	{
-		int cycles = executeOpcode(fetchOpcode());
-			nofCycles += cycles;
-		updateFlagRegister();
-		checkInterruptRequests();
-		updateGraphics(cycles);
-	}
+		char A;
+		char B;
+		char C;
+		char D;
+		char E;
+		char F;
+		char H;
+		char L;
+	} registers;
 
+	struct flag
+	{
+		char Z;
+		char N;
+		char H;
+		char C;
+	} flags;
 
-	return 0;
-}
+	 unsigned char ram[65536];
+	 int countCycles;
 
 void initialize()
 {
+	countCycles = 0;
 	cyclesScanLine = CYCLES_PER_SCAN_LINE;
 	programCounter = 0x100;
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
@@ -128,7 +148,12 @@ void writeRam(unsigned short address,  char data)
 			writeRam(address - 0x2000, data);
 		}
 
-		else if (address >= 0xFEA0 && address < 0xFF80)
+		else if (address >= 0xFEA0 && address < 0xFF00)
+		{
+			
+		}
+
+		else if (address >= 0xFF4C && address < 0xFF80)
 		{
 
 		}
@@ -187,7 +212,7 @@ int fetchOpcode()
 	//		opcode = (opcode << 8 | readRam(++programCounter));
 	//}
 	programCounter++;
-	//std::cout << "Opcode: " << std::hex << opcode << std::endl;
+	std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
 
 	return opcode;
 }
@@ -271,27 +296,30 @@ void updateGraphics(int cycles)
 {
 	setLcdStatus();
 
-	if (isLcdEnabled())
+	if (!isLcdEnabled())
+	
+	else
 	{
 		cyclesScanLine -= cycles;
-	}
 
-	/*when cyclesScanLine is 0, then one entire scanLine has been drawn.*/
-	if (cyclesScanLine <= 0)
-	{
-		unsigned short currentLine = readRam(LCDC_LY);
-		writeRam(LCDC_LY, ++currentLine);
+		/*when cyclesScanLine is 0, then one entire scanLine has been drawn.*/
+		if (cyclesScanLine <= 0)
+		{
+			unsigned char currentLine = readRam(LCDC_LY);
+			currentLine++;
+			writeRam(LCDC_LY, (char)currentLine);
 
-		cyclesScanLine = CYCLES_PER_SCAN_LINE;
+			cyclesScanLine = CYCLES_PER_SCAN_LINE;
 
-		if (currentLine < 144)
-			drawScanLine();
+			if (currentLine < 144)
+				drawScanLine();
 
-		else if (currentLine == 144)
-			requestInterrupt(VERTICAL_BLANKING);
+			else if (currentLine == 144)
+				requestInterrupt(VERTICAL_BLANKING);
 
-		else if (currentLine > 153)
-			writeRam(LCDC_LY, (unsigned short)0);
+			else if (currentLine > 153)
+				writeRam(LCDC_LY, (unsigned short)0);
+		}
 	}
 }
 
@@ -431,7 +459,7 @@ void renderTiles()
 			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 		}
 
-		int ly = readRam(0xFF44);
+		int ly = readRam(LCDC_LY);
 
 		// safety check to make sure what im about
 		// to set is int the 160x144 bounds
@@ -484,39 +512,143 @@ void renderTiles()
 
 void renderSprites()
 {
+	unsigned char lcdcControl = readRam(LCDC_CTRL);
+	bool use8x16 = false;
+	if (lcdcControl & 0x02)
+		use8x16 = true;
 
+	for (int sprite = 0; sprite < 40; sprite++)
+	{
+		unsigned char index = sprite * 4;
+		unsigned char yPos = readRam(0xFE00 + index) - 16;
+		unsigned char xPos = readRam(0xFE00 + index + 1) - 8;
+		unsigned char spriteLocation = readRam(0xFE00 + index + 2);
+		unsigned char attributes = readRam(0xFE00 + index + 3);
+
+		bool yFlip = (attributes & 0x40) ? true : false;
+		bool xFlip = (attributes & 0x20) ? true : false;
+
+		int ly = readRam(LCDC_LY);
+
+		int ySize = 8;
+		if (use8x16)
+			ySize = 16;
+
+		if ((ly >= yPos) && ly < (yPos + ySize))
+		{
+			int line = ly - yPos;
+
+			//read the line in backwards
+			if (yFlip)
+			{
+				line -= ySize;
+				line *= -1;
+			}
+
+			line *= 2; 
+			unsigned short dataAddress = (0x8000 + (spriteLocation * 16) + line);
+			unsigned char data1 = readRam(dataAddress);
+			unsigned char data2 = readRam(dataAddress + 1);
+
+			// its easier to read in from right to left as pixel 0 is
+			// bit 7 in the colour data, pixel 1 is bit 6 etc...
+			for (int tilePixel = 7; tilePixel >= 0; tilePixel--)
+			{
+				int colourBit = tilePixel;
+				// read the sprite in backwards for the x axis
+				if (xFlip)
+				{
+					colourBit -= 7;
+					colourBit *= -1;
+				}
+
+				// combine data 2 and data 1 to get the colour id for this pixel
+				// in the tile
+				int dotData = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+				dotData <<= 1;
+				dotData |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
+
+				unsigned short paletteAddress = (attributes & 0x08) ? 0xFF49 : 0xFF48;
+
+				//lets get the shade from the palette at 0xFF47
+				unsigned char palette = readRam(paletteAddress);
+				int shade;
+
+				//replaces below switch
+				shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
+
+				int red = 0;
+				int green = 0;
+				int blue = 0;
+
+				// setup the RGB values
+				switch (shade)
+				{
+					case 0: red = 255;  green = 255; blue = 255; break;
+					case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+					case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+					case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+				}
+
+				int xPix = 0 - tilePixel;
+				xPix += 7;
+				int pixel = xPos + xPix;
+
+				int ly = readRam(LCDC_LY);
+
+				// safety check to make sure what im about
+				// to set is int the 160x144 bounds
+				if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
+				{
+					//skip this cycle of the loop
+				}
+				else
+				{
+					screenData[pixel][ly][0] = red;
+					screenData[pixel][ly][1] = green;
+					screenData[pixel][ly][2] = blue;
+				}
+
+			}
+		}
+
+	}
 }
 
 
 void drawScanLine()
 {
 	unsigned char control = readRam(LCDC_CTRL);
-	if (control & 0x1 == 0x1)
+	if (control & 0x1)
 		renderTiles();
-	if (control & 0x1 == 0x1)
+	if (control & 0x2)
 		renderSprites();
 }
 
 void setLcdStatus()
 {
-	unsigned short status = readRam(LCDC_STAT);
+	unsigned char status = readRam(LCDC_STAT);
 	if (!isLcdEnabled())
 	{
 		cyclesScanLine = CYCLES_PER_SCAN_LINE;
 		writeRam(LCDC_LY, (unsigned short)0);
 
 		//set mode to 01 (vblank mode)
+		status &= 0xFC;
 		status |= 0x01;
-		writeRam(LCDC_STAT, (unsigned short)1);
+		writeRam(LCDC_STAT, (char)status);
 	}
 	else
 	{
-		unsigned short currentLine = readRam(LCDC_LY);
-		unsigned short currentMode = status & 0x03;
+		unsigned char currentLine = readRam(LCDC_LY);
+		unsigned char currentMode = status & 0x03;
 
-		unsigned short modeToSet = 0;
+		unsigned char modeToSet = 0;
 		unsigned short requestInt = 0;
 
+		//over 144, so go into vblank mode
 		if (currentLine > 144)
 		{
 			modeToSet = 0x01;
@@ -556,18 +688,20 @@ void setLcdStatus()
 		if (requestInt && (modeToSet != currentMode))
 			requestInterrupt(0x01);
 
+		//check coincidence flag
 		if (currentLine == readRam(0xFF45))
 		{
 			status |= 0x02;
-			if (status & 0x40 == 0x40)
+			if (status & 0x40)
 				requestInterrupt(0x01);
 		}
 		else
 		{
+			//make sure the coincidence flag (bit 2) is 0
 			status &= 0xFD;
 		}
 
-		writeRam(LCDC_STAT, status);
+		writeRam(LCDC_STAT, (char)status);
 
 
 
@@ -576,7 +710,7 @@ void setLcdStatus()
 
 bool isLcdEnabled()
 {
-	return (readRam(LCDC_CTRL) & 0x80) == 0x80;
+	return ((readRam(LCDC_CTRL) & 0x80) == 0x80);
 }
 
 //0xF0 (0x02B2 PC) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 

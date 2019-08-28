@@ -16,39 +16,7 @@
 #define LCDC_STAT 0xFF41
 #define LCDC_LY 0xFF44
 
-unsigned char ram[65536];
-unsigned short stackPointer, programCounter;
-int nofCycles;
-int cyclesScanLine;
-/*Interrupts*/
-/*
-Bit 0: V-Blank Interupt
-Bit 1: LCD Interupt
-Bit 2: Timer Interupt
-Bit 4: Joypad Interupt
-*/
-char imeFlag;
-unsigned char screenData[160][144][3]
 
-struct reg
-{
-	char A;
-	char B;
-	char C;
-	char D;
-	char E;
-	char F;
-	char H;
-	char L;
-} registers;
-
-struct flag
-{
-	char Z;
-	char N;
-	char H;
-	char C;
-} flags;
 
 
 void loadRom(const char *);
