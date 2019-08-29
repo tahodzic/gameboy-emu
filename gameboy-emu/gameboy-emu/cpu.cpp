@@ -212,7 +212,7 @@ int fetchOpcode()
 	//		opcode = (opcode << 8 | readRam(++programCounter));
 	//}
 	programCounter++;
-	std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
+	//std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
 
 	return opcode;
 }
@@ -297,7 +297,8 @@ void updateGraphics(int cycles)
 	setLcdStatus();
 
 	if (!isLcdEnabled())
-	
+	{
+	}
 	else
 	{
 		cyclesScanLine -= cycles;
