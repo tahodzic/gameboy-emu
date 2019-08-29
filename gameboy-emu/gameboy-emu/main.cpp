@@ -11,15 +11,17 @@ int main()
 	setupScreen();
 	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
 	while (1) {
+		int i = -1;
 		while (countCycles < MAX_CYCLES_PER_SECOND)
 		{
 			int cycles = executeOpcode(fetchOpcode());
+			i++;
 			countCycles += cycles;
 			updateFlagRegister();
 			updateGraphics(cycles);
 			checkInterruptRequests();
 		}
-
+		countCycles = 0;
 		drawToScreen();
 
 	}

@@ -64,7 +64,7 @@ void drawToScreen()
 
 
 
-
+	//Following code is sufficient for the beginning... man, what a shit show.
 
 	SDL_Texture* texture = SDL_CreateTexture(renderer,
 		SDL_PIXELFORMAT_ARGB8888,
