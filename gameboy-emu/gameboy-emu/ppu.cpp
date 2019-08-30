@@ -55,7 +55,7 @@ void drawToScreen()
 	if (SDL_LockTexture(texture, NULL,(void**) &pixels, &pitch))
 		std::cout << "SDL_LockTexture failed. Error: " << SDL_GetError();
 
-	Uint32 red = 0, green = 0, blue = 0;
+	Uint32 red = 0, green = 0, blue = 0, alpha = 0;
 
 	for (int x = 0; x < 160; x++)
 	{
@@ -67,7 +67,7 @@ void drawToScreen()
 				green = screenData[x][y][1];
 				blue = screenData[x][y][2];
 				int a = y * 160 + x;
-				pixels[y * 160 + x] = (red << 2 * 8) | (green << 8) | blue;
+				pixels[y * 160 + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
 			}
 		}
 	}

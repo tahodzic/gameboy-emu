@@ -180,10 +180,10 @@ void startDmaTransfer(unsigned char data)
 }
 /*16 bit writes*/
 //TODO
-void writeRam(unsigned short address, unsigned short data)
+/*oid writeRam(unsigned short address, unsigned short data)
 {
 
-}
+}*/
 
 int fetchOpcode()
 {
@@ -482,28 +482,28 @@ void renderTiles()
 		//		shade = (palette & 0x80) ? 1 : 0;
 		//		shade <<= 1;
 		//		shade |= (palette & 0x40) ? 1 : 0;
-		//		break;
+		//		herewasabreak;
 		//	}
 		//	case 2: //Bit 5-4
 		//	{
 		//		shade = (palette & 0x20) ? 1 : 0;
 		//		shade <<= 1;
 		//		shade |= (palette & 0x10) ? 1 : 0;
-		//		break;
+		//		herewasabreak;
 		//	}
 		//	case 1: //Bit 3-2
 		//	{
 		//		shade = (palette & 0x08) ? 1 : 0;
 		//		shade <<= 1;
 		//		shade |= (palette & 0x04) ? 1 : 0;
-		//		break;
+		//		herewasabreak;
 		//	}
 		//	case 0: //Bit 1-0
 		//	{
 		//		shade = (palette & 0x02) ? 1 : 0;
 		//		shade <<= 1;
 		//		shade |= (palette & 0x01) ? 1 : 0;
-		//		break;
+		//		herewasabreak;
 		//	}
 
 		//}
@@ -588,7 +588,7 @@ void renderSprites()
 				// setup the RGB values
 				switch (shade)
 				{
-					case 0: red = 255;  green = 255; blue = 255; break;
+					case 0: red = 255;  green = 255; blue = 255;   break;
 					case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
 					case 2: red = 0x77; green = 0x77; blue = 0x77; break;
 					case 3: red = 0x00; green = 0x00; blue = 0x00; break;
@@ -719,17 +719,17 @@ bool isLcdEnabled()
 //Dem nachgehen.
 int executeOpcode(unsigned char opcode)
 {
-	std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
-	std::cout << "af: 0x" << std::hex << +registers.A << +registers.F << std::endl;
-	std::cout << "bc: 0x" << std::hex << (unsigned int)registers.B << (unsigned int)registers.C << std::endl;
-	std::cout << "de: 0x" << std::hex << (unsigned int)registers.D << (unsigned int)registers.E << std::endl;
-	std::cout << "hl: 0x" << std::hex << (unsigned int)registers.H << (unsigned short)registers.L << std::endl;
-	std::cout << "sp: 0x" << std::hex << (int)stackPointer << std::endl;
-	std::cout << "pc: 0x" << std::hex << (int)programCounter << std::endl;
+	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
+	//std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << std::endl;
+	//std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << std::endl;
+	//std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << std::endl;
+	//std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << std::endl;
+	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << std::endl;
+	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << std::endl << std::endl;
 	//bc: 0xed10 opcode:0x20 (danach ff44 ++)
 
 	//0x0D first instruction after first loop 
-		//TODO: 0xFA implementieren
+		//TODO: 0x36 implementierenF
 	switch (opcode)
 	{
 		case 0x00:
@@ -760,273 +760,278 @@ int executeOpcode(unsigned char opcode)
 		///*LD D, n*/
 		//case 0x16:
 		//{
-		//	break;
+		//	herewasabreak;
 
 		//}
 		///*LD E, n*/
 		//case 0x1E:
 		//{
-		//	break;
+		//	herewasabreak;
 
 		//}
 		///*LD H, n*/
 		//case 0x26:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L, n*/
 		//case 0x2E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*LD r1, r2*/
 		///*LD A,A*/ case 0x7F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,B*/ case 0x78:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,C*/ case 0x79:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,D*/ case 0x7A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,E*/ case 0x7B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,H*/ case 0x7C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,L*/ case 0x7D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,(HL)*/ case 0x7E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,B*/ case 0x40:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,C*/ case 0x41:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,D*/ case 0x42:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,E*/ case 0x43:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,H*/ case 0x44:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,L*/ case 0x45:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD B,(HL)*/ case 0x46:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,B*/ case 0x48:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,C*/ case 0x49:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,D*/ case 0x4A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,E*/ case 0x4B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,H*/ case 0x4C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,L*/ case 0x4D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,(HL)*/ case 0x4E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,B*/ case 0x50:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,C*/ case 0x51:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,D*/ case 0x52:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,E*/ case 0x53:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,H*/ case 0x54:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,L*/ case 0x55:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,(HL)*/ case 0x56:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,B*/ case 0x58:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,C*/ case 0x59:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,D*/ case 0x5A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,E*/ case 0x5B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,H*/ case 0x5C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,L*/ case 0x5D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,(HL)*/ case 0x5E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,B*/ case 0x60:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,C*/ case 0x61:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,D*/ case 0x62:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,E*/ case 0x63:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,H*/ case 0x64:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,L*/ case 0x65:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,(HL)*/ case 0x66:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,B*/ case 0x68:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,C*/ case 0x69:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,D*/ case 0x6A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,E*/ case 0x6B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,H*/ case 0x6C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,L*/ case 0x6D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,(HL)*/ case 0x6E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),B*/ case 0x70:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),C*/ case 0x71:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),D*/ case 0x72:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),E*/ case 0x73:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),H*/ case 0x74:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),L*/ case 0x75:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
-		///*LD (HL),n*/ case 0x36:
-		//{
-		//	break;
-		//}
+		/*LD (HL),n*/ case 0x36:
+		{
+			unsigned char n = readRam(programCounter);
+			unsigned short dstAddress = registers.H << 8 | registers.L;
+			writeRam(dstAddress, n);
+			programCounter++;
+			return 12;
+		}
 
 		///*LD A,(BC)*/ case 0x0A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD A,(DE)*/ case 0x1A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*LD A,(nn)*/ case 0xFA:
 		//{
-		//	break;
+		//	
+		//	herewasabreak;
 		//}
 		/*LD A,#*/ case 0x3E:
 		{
@@ -1040,61 +1045,67 @@ int executeOpcode(unsigned char opcode)
 		///*LD n,A*/
 		///*LD B,A*/ case 0x47:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD C,A*/ case 0x4F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD D,A*/ case 0x57:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD E,A*/ case 0x5F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD H,A*/ case 0x67:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD L,A*/ case 0x6F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (BC),A*/ case 0x02:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (DE),A*/ case 0x12:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD (HL),A*/ case 0x77:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
-		///*LD (nn),A*/ case 0xEA:
-		//{
-		//	break;
-		//}
+		/*LD (nn),A*/ case 0xEA:
+		{
+			unsigned char nlowByte = readRam(programCounter);
+			unsigned char nHighByte = readRam(programCounter+1);
+			unsigned short nn = nHighByte << 8 | nlowByte;
+
+			writeRam(nn, registers.A);
+
+			return 16;
+		}
 
 
 		///*LD A, (C)*/ case 0xF2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*LD (C), A*/ case 0xE2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*LD A,(HLD)*/
 		///*LD A,(HL-)*/
 		///*LDD A,(HL)*/ case 0x3A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		/*LD (HLD),A */
@@ -1116,7 +1127,7 @@ int executeOpcode(unsigned char opcode)
 //		/*LDI A,(HL)*/
 //		case 0x2A:
 //		{
-//			break;
+//			herewasabreak;
 //		}
 //
 //		/*LD (HLI),A */
@@ -1124,7 +1135,7 @@ int executeOpcode(unsigned char opcode)
 ///*LDI (HL),A*/
 //		case 0x22:
 //		{
-//			break;
+//			herewasabreak;
 //		}
 //
 		/*LDH (n),A*/
@@ -1144,18 +1155,18 @@ int executeOpcode(unsigned char opcode)
 			//int n = ram[programCounter] & 0xFF;
 			unsigned char n = readRam(programCounter);
 			//registers.A = ram[0xFF00 + n] & 0xFF;
-			//registers.A = readRam(0xFF00+n);
-			registers.A = 0x3E;
+			registers.A = readRam(0xFF00+n);
+			///registers.A = 0x3E;
 			programCounter++;
 			return 12;
 		}
 
 		///*LD n,nn*/
 		///*LD BC,nn*/ case 0x01: {
-		//	break;
+		//	herewasabreak;
 		//}
 		///*LD DE,nn*/ case 0x11: {
-		//	break;
+		//	herewasabreak;
 		//}
 		/*LD HL,nn*/ case 0x21: {
 			//registers.L = ram[programCounter];
@@ -1166,47 +1177,47 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 		///*LD SP,nn*/ case 0x31: {
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*LD SP, HL*/ case 0xF9: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 		///*LDHL SP, n*/ case 0xF8: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*LD (nn),SP*/ case 0x08: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*PUSH AF*/ case 0xF5: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*PUSH BC*/ case 0xC5: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*PUSH DE*/ case 0xD5: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*PUSH HL*/ case 0xE5: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
@@ -1214,257 +1225,257 @@ int executeOpcode(unsigned char opcode)
 
 		///*POP AF*/ case 0xF1: {
 
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*POP BC*/ case 0xC1: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*POP DE*/ case 0xD1: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*POP HL*/ case 0xE1: {
-		//	break;
+		//	herewasabreak;
 
 		//}
 
 
 		///*ADD A,A*/ case 0x87:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,B*/ case 0x80:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,C*/ case 0x81:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,D*/ case 0x82:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,E*/ case 0x83:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,H*/ case 0x84:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,L*/ case 0x85:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,(HL)*/ case 0x86:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD A,#*/ case 0xC6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*ADC A,A*/ case 0x8F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,B*/ case 0x88:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,C*/ case 0x89:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,D*/ case 0x8A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,E*/ case 0x8B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,H*/ case 0x8C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,L*/ case 0x8D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,(HL)*/ case 0x8E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADC A,#*/ case 0xCE:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*SUB A*/ case 0x97:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB B*/ case 0x90:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB C*/ case 0x91:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB D*/ case 0x92:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB E*/ case 0x93:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB H*/ case 0x94:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB L*/ case 0x95:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB (HL)*/ case 0x96:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SUB #*/ case 0xD6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*SBC A,A*/ case 0x9F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,B*/ case 0x98:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,C*/ case 0x99:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,D*/ case 0x9A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,E*/ case 0x9B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,H*/ case 0x9C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,L*/ case 0x9D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,(HL)*/ case 0x9E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SBC A,#*/ case 0xDE:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*AND A*/ case 0xA7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND B*/ case 0xA0:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND C*/ case 0xA1:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND D*/ case 0xA2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND E*/ case 0xA3:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND H*/ case 0xA4:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND L*/ case 0xA5:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND (HL)*/ case 0xA6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*AND #*/ case 0xE6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*OR A*/ case 0xB7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR B*/ case 0xB0:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR C*/ case 0xB1:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR D*/ case 0xB2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR E*/ case 0xB3:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR H*/ case 0xB4:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR L*/ case 0xB5:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR (HL)*/ case 0xB6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*OR #*/ case 0xF6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
@@ -1483,70 +1494,70 @@ int executeOpcode(unsigned char opcode)
 		}
 		///*XOR B*/ case 0xA8:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR C*/ case 0xA9:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR D*/ case 0xAA:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR E*/ case 0xAB:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR H*/ case 0xAC:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR L */case 0xAD:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR (HL)*/ case 0xAE:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*XOR * */ case 0xEE:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*CP A*/ case 0xBF:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP B*/ case 0xB8:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP C*/ case 0xB9:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP D*/ case 0xBA:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP E*/ case 0xBB:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP H*/ case 0xBC:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP L*/ case 0xBD:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CP (HL)*/ case 0xBE:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		/*CP #*/ case 0xFE:
 		{
@@ -1570,7 +1581,7 @@ int executeOpcode(unsigned char opcode)
 				flags.C = 1;
 			}
 			else flags.C = 0;
-
+			programCounter++;
 
 			return 8;
 		}
@@ -1578,35 +1589,35 @@ int executeOpcode(unsigned char opcode)
 
 		///*INC A*/ case 0x3C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC B*/ case 0x04:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC C*/ case 0x0C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC D*/ case 0x14:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC E*/ case 0x1C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC H*/ case 0x24:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC L*/ case 0x2C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC (HL)*/ case 0x34:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
@@ -1754,70 +1765,70 @@ int executeOpcode(unsigned char opcode)
 		//	//flags.N = 0x1;
 
 		//	
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*ADD HL,BC*/ case 0x09:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD HL,DE*/ case 0x19:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD HL,HL*/ case 0x29:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*ADD HL,SP*/ case 0x39:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*ADD SP, #*/ case 0xE8:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*INC BC*/ case 0x03:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC DE*/ case 0x13:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC HL*/ case 0x23:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*INC SP*/ case 0x33:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*DEC BC*/ case 0x0B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*DEC DE*/ case 0x1B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*DEC HL*/ case 0x2B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*DEC SP*/ case 0x3B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
@@ -1825,439 +1836,439 @@ int executeOpcode(unsigned char opcode)
 
 		///*SWAP A*/ case 0xCB37:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP B*/ case 0xCB30:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP C*/ case 0xCB31:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP D*/ case 0xCB32:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP E*/ case 0xCB33:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP H*/ case 0xCB34:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP L*/ case 0xCB35:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SWAP (HL)*/ case 0xCB36:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*DAA*/ case 0x27:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*CPL*/ case 0x2F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*CCF*/ case 0x3F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*SCF*/ case 0x37:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*HALT*/ case 0x76:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*STOP*/ case 0x1000:
 		//{
 
 
-		//	break;
+		//	herewasabreak;
 		//}
 
 
-		///*DI*/ case 0xF3:
-		//{
-		//	imeFlag = 0x00;
-		//	break;
-		//}
+		/*DI*/ case 0xF3:
+		{
+			imeFlag = 0x00;
+			return 4;
+		}
 
 
 
 		///*EI*/ case 0xFB:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RLCA*/ case 0x07:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RLA*/ case 0x17:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RRCA*/ case 0x0F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RRA*/ case 0x1F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RLC A*/ case 0xCB07:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC B*/ case 0xCB00:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC C*/ case 0xCB01:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC D*/ case 0xCB02:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC E*/ case 0xCB03:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC H*/ case 0xCB04:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC L*/ case 0xCB05:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RLC (HL)*/ case 0xCB06:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*RL A*/ case 0xCB17:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL B*/ case 0xCB10:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL C*/ case 0xCB11:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL D*/ case 0xCB12:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL E*/ case 0xCB13:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL H*/ case 0xCB14:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL L*/ case 0xCB15:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RL (HL)*/ case 0xCB16:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 
 		///*RRC A*/ case 0xCB0F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC B*/ case 0xCB08:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC C*/ case 0xCB09:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC D*/ case 0xCB0A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC E*/ case 0xCB0B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC H*/ case 0xCB0C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC L*/ case 0xCB0D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RRC (HL)*/ case 0xCB0E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RR A */case 0xCB1F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR B */case 0xCB18:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR C */case 0xCB19:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR D */case 0xCB1A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR E */case 0xCB1B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR H */case 0xCB1C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR L */case 0xCB1D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RR (HL)*/case 0xCB1E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*SLA A*/ case 0xCB27:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA B*/ case 0xCB20:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA C*/ case 0xCB21:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA D*/ case 0xCB22:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA E*/ case 0xCB23:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA H*/ case 0xCB24:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA L*/ case 0xCB25:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SLA (HL)*/ case 0xCB26:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*SRA A*/ case 0xCB2F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA B*/ case 0xCB28:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA C*/ case 0xCB29:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA D*/ case 0xCB2A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA E*/ case 0xCB2B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA H*/ case 0xCB2C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA L*/ case 0xCB2D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRA (HL)*/ case 0xCB2E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*SRL A*/ case 0xCB3F:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL B*/ case 0xCB38:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL C*/ case 0xCB39:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL D*/ case 0xCB3A:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL E*/ case 0xCB3B:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL H*/ case 0xCB3C:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL L*/ case 0xCB3D:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SRL (HL)*/ case 0xCB3E:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*BIT b,A*/ case 0xCB47:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,B*/ case 0xCB40:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,C*/ case 0xCB41:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,D*/ case 0xCB42:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,E*/ case 0xCB43:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,H*/ case 0xCB44:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,L*/ case 0xCB45:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*BIT b,(HL)*/ case 0xCB46:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
 		///*SET b,A*/ case 0xCBC7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,B*/ case 0xCBC0:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,C*/ case 0xCBC1:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,D*/ case 0xCBC2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,E*/ case 0xCBC3:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,H*/ case 0xCBC4:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,L*/ case 0xCBC5:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*SET b,(HL)*/ case 0xCBC6:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RES b,A*/ case 0xCB87:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,B*/ case 0xCB80:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,C*/ case 0xCB81:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,D*/ case 0xCB82:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,E*/ case 0xCB83:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,H*/ case 0xCB84:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,L*/ case 0xCB85:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RES b,(HL)*/ case 0xCB86:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 
@@ -2272,28 +2283,28 @@ int executeOpcode(unsigned char opcode)
 
 		///*JP NZ,nn*/ case 0xC2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JP Z,nn*/ case 0xCA:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JP NC,nn*/ case 0xD2:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JP C,nn*/ case 0xDA:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*JP (HL)*/ case 0xE9:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JR n*/ case 0x18:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		/*JR NZ,**/ case 0x20:
@@ -2309,97 +2320,97 @@ int executeOpcode(unsigned char opcode)
 		}
 		///*JR Z,* */case 0x28:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JR NC,**/ case 0x30:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*JR C,* */case 0x38:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*CALL nn*/ case 0xCD:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*CALL NZ,nn*/ case 0xC4:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CALL Z,nn*/ case 0xCC:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CALL NC,nn*/ case 0xD4:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*CALL C,nn*/ case 0xDC:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RST 00H*/ case 0xC7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 08H*/ case 0xCF:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 10H*/ case 0xD7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 18H*/ case 0xDF:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 20H*/ case 0xE7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 28H*/ case 0xEF:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 30H*/ case 0xF7:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RST 38H*/ case 0xFF:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RET -/-*/ case 0xC9:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RET NZ*/ case 0xC0:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RET Z*/ case 0xC8:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RET NC */case 0xD0:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 		///*RET C*/ case 0xD8:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 		///*RETI -/-*/ case 0xD9:
 		//{
-		//	break;
+		//	herewasabreak;
 		//}
 
 

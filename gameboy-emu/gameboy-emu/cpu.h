@@ -26,7 +26,7 @@ int executeOpcode(unsigned char);
 void updateFlagRegister();
 unsigned char readRam(unsigned short address);
 void writeRam(unsigned short  address, unsigned char data);
-void writeRam(unsigned short  address, unsigned short  data);
+//void writeRam(unsigned short  address, unsigned short  data);
 void pushToStack(unsigned short data);
 unsigned short popFromStack();
 void requestInterrupt(int interruptNumber);
