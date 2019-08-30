@@ -2,6 +2,7 @@
 
 #include "cpu.h"
 #include "ppu.h"
+#include <iostream>
 
 extern int countCycles;
 
@@ -23,8 +24,11 @@ int main()
 		}
 		countCycles = 0;
 		drawToScreen();
+		//std::cout.flush();
+
 
 	}
+
 
 
 	return 0;

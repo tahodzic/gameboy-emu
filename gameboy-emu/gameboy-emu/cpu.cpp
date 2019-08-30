@@ -44,6 +44,9 @@
 
 void initialize()
 {
+	//prevent automatic flush of cout after every "\n" 
+	std::setvbuf(stdout, nullptr, _IOFBF, BUFSIZ);
+
 	countCycles = 0;
 	cyclesScanLine = CYCLES_PER_SCAN_LINE;
 	programCounter = 0x100;
@@ -719,13 +722,13 @@ bool isLcdEnabled()
 //Dem nachgehen.
 int executeOpcode(unsigned char opcode)
 {
-	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
-	//std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << std::endl;
-	//std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << std::endl;
-	//std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << std::endl;
-	//std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << std::endl;
-	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << std::endl;
-	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << std::endl << std::endl;
+	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
+	std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
+	std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
+	std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
+	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 	//bc: 0xed10 opcode:0x20 (danach ff44 ++)
 
 	//0x0D first instruction after first loop 
@@ -1087,6 +1090,8 @@ int executeOpcode(unsigned char opcode)
 
 			writeRam(nn, registers.A);
 
+			programCounter += 2;
+
 			return 16;
 		}
 
@@ -1122,13 +1127,22 @@ int executeOpcode(unsigned char opcode)
 			return 8;
 		}
 
-//		/*LD A,(HLI) */
-//		/*LD A,(HL+) */
-//		/*LDI A,(HL)*/
-//		case 0x2A:
-//		{
-//			herewasabreak;
-//		}
+		/*LD A,(HLI) */
+		/*LD A,(HL+) */
+		/*LDI A,(HL)*/
+		case 0x2A:
+		{		
+			
+			unsigned short srcAddress = registers.H << 8 | registers.L;
+			unsigned char value = readRam(srcAddress);
+			registers.A = value;
+			srcAddress++;
+			registers.H = (srcAddress & 0xFF00) >> 8;
+			registers.L = srcAddress & 0x00FF;
+			programCounter++;
+			std::cout.flush();
+			return 8;
+		}
 //
 //		/*LD (HLI),A */
 ///*LD (HL+),A */
@@ -1176,9 +1190,16 @@ int executeOpcode(unsigned char opcode)
 			programCounter++;
 			return 12;
 		}
-		///*LD SP,nn*/ case 0x31: {
-		//	herewasabreak;
-		//}
+		/*LD SP,nn*/ case 0x31: {
+			unsigned char nlowByte = readRam(programCounter);
+			unsigned char nHighByte = readRam(programCounter + 1);
+			unsigned short nn = nHighByte << 8 | nlowByte;
+
+			stackPointer = nn;
+
+			programCounter += 2;
+			return 12;
+		}
 
 
 		///*LD SP, HL*/ case 0xF9: {
@@ -2416,7 +2437,7 @@ int executeOpcode(unsigned char opcode)
 
 		default:
 		{
-			std::cout << "Following opcode needs to be implemented: " << std::hex << (int)opcode << std::endl;
+			std::cout << "Following opcode needs to be implemented: " << std::hex << +opcode << std::endl;
 		};
 	}
 
