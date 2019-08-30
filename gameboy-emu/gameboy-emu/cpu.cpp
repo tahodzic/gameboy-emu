@@ -7,7 +7,6 @@
 #include <iostream>
 
 
-
 	int cyclesScanLine;
 	unsigned short stackPointer, programCounter;
 	/*Interrupts*/
@@ -22,22 +21,22 @@
 
 	struct reg
 	{
-		char A;
-		char B;
-		char C;
-		char D;
-		char E;
-		char F;
-		char H;
-		char L;
+		unsigned char A;
+		unsigned char B;
+		unsigned char C;
+		unsigned char D;
+		unsigned char E;
+		unsigned char F;
+		unsigned char H;
+		unsigned char L;
 	} registers;
 
 	struct flag
 	{
-		char Z;
-		char N;
-		char H;
-		char C;
+		unsigned char Z;
+		unsigned char N;
+		unsigned char H;
+		unsigned char C;
 	} flags;
 
 	 unsigned char ram[65536];
@@ -139,7 +138,7 @@ unsigned char readRam(unsigned short address)
 }
 
 /*8 Bit writes*/
-void writeRam(unsigned short address,  char data)
+void writeRam(unsigned short address, unsigned char data)
 {
 	/*0x0000 - 0x7FFF is read only*/
 	if (address > 0x7FFF)
@@ -171,12 +170,12 @@ void writeRam(unsigned short address,  char data)
 	}
 }
 
-void startDmaTransfer(char data)
+void startDmaTransfer(unsigned char data)
 {
 	unsigned short address = data << 8;
 	for (int i = 0; i < 0xA0; i++)
 	{
-		writeRam(0xFE00 + i, (char)readRam(address + i));
+		writeRam(0xFE00 + i, readRam(address + i));
 	}
 }
 /*16 bit writes*/
@@ -234,7 +233,7 @@ unsigned short popFromStack()
 
 void requestInterrupt(int interruptNumber)
 {
-	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 	irRequestFlagStatus = irRequestFlagStatus | interruptNumber;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 }
@@ -281,7 +280,7 @@ void checkInterruptRequests()
 void serviceInterrupt(int interruptNumber)
 {
 	imeFlag = 0;
-	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 	irRequestFlagStatus = irRequestFlagStatus & !interruptNumber;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 	switch (interruptNumber)
@@ -310,7 +309,7 @@ void updateGraphics(int cycles)
 		{
 			unsigned char currentLine = readRam(LCDC_LY);
 			currentLine++;
-			writeRam(LCDC_LY, (char)currentLine);
+			writeRam(LCDC_LY, currentLine);
 
 			cyclesScanLine = CYCLES_PER_SCAN_LINE;
 
@@ -636,12 +635,12 @@ void setLcdStatus()
 	if (!isLcdEnabled())
 	{
 		cyclesScanLine = CYCLES_PER_SCAN_LINE;
-		writeRam(LCDC_LY, (unsigned short)0);
+		writeRam(LCDC_LY, (unsigned char)0);
 
 		//set mode to 01 (vblank mode)
 		status &= 0xFC;
 		status |= 0x01;
-		writeRam(LCDC_STAT, (char)status);
+		writeRam(LCDC_STAT, status);
 	}
 	else
 	{
@@ -704,7 +703,7 @@ void setLcdStatus()
 			status &= 0xFD;
 		}
 
-		writeRam(LCDC_STAT, (char)status);
+		writeRam(LCDC_STAT, status);
 
 
 
@@ -720,13 +719,13 @@ bool isLcdEnabled()
 //Dem nachgehen.
 int executeOpcode(unsigned char opcode)
 {
-	//std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
-	//std::cout << "af: 0x" << std::hex << (unsigned int)registers.A << (unsigned int)registers.F << std::endl;
-	//std::cout << "bc: 0x" << std::hex << (unsigned int)registers.B << (unsigned int)registers.C << std::endl;
-	//std::cout << "de: 0x" << std::hex << (unsigned int)registers.D << (unsigned int)registers.E << std::endl;
-	//std::cout << "hl: 0x" << std::hex << (unsigned int)registers.H << (unsigned short)registers.L << std::endl;
-	//std::cout << "sp: 0x" << std::hex << (int)stackPointer << std::endl;
-	//std::cout << "pc: 0x" << std::hex << (int)programCounter << std::endl;
+	std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
+	std::cout << "af: 0x" << std::hex << +registers.A << +registers.F << std::endl;
+	std::cout << "bc: 0x" << std::hex << (unsigned int)registers.B << (unsigned int)registers.C << std::endl;
+	std::cout << "de: 0x" << std::hex << (unsigned int)registers.D << (unsigned int)registers.E << std::endl;
+	std::cout << "hl: 0x" << std::hex << (unsigned int)registers.H << (unsigned short)registers.L << std::endl;
+	std::cout << "sp: 0x" << std::hex << (int)stackPointer << std::endl;
+	std::cout << "pc: 0x" << std::hex << (int)programCounter << std::endl;
 	//bc: 0xed10 opcode:0x20 (danach ff44 ++)
 
 	//0x0D first instruction after first loop 

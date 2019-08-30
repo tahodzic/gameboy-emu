@@ -25,7 +25,7 @@ int fetchOpcode();
 int executeOpcode(unsigned char);
 void updateFlagRegister();
 unsigned char readRam(unsigned short address);
-void writeRam(unsigned short  address, char data);
+void writeRam(unsigned short  address, unsigned char data);
 void writeRam(unsigned short  address, unsigned short  data);
 void pushToStack(unsigned short data);
 unsigned short popFromStack();
@@ -36,7 +36,7 @@ void updateGraphics(int cycles);
 void drawScanLine();
 void setLcdStatus();
 bool isLcdEnabled();
-void startDmaTransfer(char data);
+void startDmaTransfer(unsigned char data);
 void renderSprites();
 void renderTiles();
 
