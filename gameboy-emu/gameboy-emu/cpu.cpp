@@ -732,7 +732,7 @@ int executeOpcode(unsigned char opcode)
 	//bc: 0xed10 opcode:0x20 (danach ff44 ++)
 
 	//0x0D first instruction after first loop 
-		//TODO: 0x36 implementierenF
+		//TODO: 0x21 implementierenF
 	switch (opcode)
 	{
 		case 0x00:
@@ -1101,10 +1101,12 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*LD (C), A*/ case 0xE2:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD (C), A*/ case 0xE2:
+		{
+			unsigned short dstAddress = 0xFF00 + registers.C;
+			writeRam(dstAddress, registers.A);
+			return 8;
+		}
 
 		///*LD A,(HLD)*/
 		///*LD A,(HL-)*/
@@ -1139,8 +1141,6 @@ int executeOpcode(unsigned char opcode)
 			srcAddress++;
 			registers.H = (srcAddress & 0xFF00) >> 8;
 			registers.L = srcAddress & 0x00FF;
-			programCounter++;
-			std::cout.flush();
 			return 8;
 		}
 //
@@ -1616,10 +1616,20 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*INC C*/ case 0x0C:
-		//{
-		//	herewasabreak;
-		//}
+		/*INC C*/ case 0x0C:
+		{
+			flags.Z = 0;
+			if (registers.C == 0x0F)
+				flags.H = 0;
+			else if (registers.C == 0)
+				flags.Z = 1;
+			registers.C++;
+
+			flags.N = 0;
+
+
+			return 4;
+		}
 		///*INC D*/ case 0x14:
 		//{
 		//	herewasabreak;
@@ -2352,10 +2362,21 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*CALL nn*/ case 0xCD:
-		//{
-		//	herewasabreak;
-		//}
+		/*call nn*/ case 0xcd:
+		{
+			pushToStack(programCounter);
+			std::cout.flush();
+			unsigned char nHighByte = readRam(programCounter);
+			unsigned char nLowByte = readRam(programCounter + 1);
+
+			//LSB first
+			programCounter = nLowByte << 8 | nHighByte;
+			//Increment, because the subroutine is placed after the nn
+			//programCounter++;
+
+			
+			return 12;
+		}
 
 		///*CALL NZ,nn*/ case 0xC4:
 		//{
@@ -2402,10 +2423,13 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*RST 38H*/ case 0xFF:
-		//{
-		//	herewasabreak;
-		//}
+		/*RST 38H*/ case 0xFF:
+		{
+			//push PRESENT address onto stack, hence we need to pass programCounter - 1
+			pushToStack(programCounter - 1);
+			programCounter = 0x38;
+			return 32;
+		}
 
 		///*RET -/-*/ case 0xC9:
 		//{
