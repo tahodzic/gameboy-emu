@@ -298,8 +298,12 @@ void serviceInterrupt(int interruptNumber)
 {
 	imeFlag = 0;
 	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+
+	//clear the interrupt bit in the status byte
 	irRequestFlagStatus = irRequestFlagStatus & !interruptNumber;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
+	pushToStack(programCounter);
+
 	switch (interruptNumber)
 	{
 		case VERTICAL_BLANKING: programCounter = 0x40; break;
