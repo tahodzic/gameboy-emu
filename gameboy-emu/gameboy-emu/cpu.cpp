@@ -16,7 +16,7 @@
 	Bit 2: Timer Interupt
 	Bit 4: Joypad Interupt
 	*/
-	char imeFlag;
+	char imeFlag = 0x00, disableImeFlag = 0x00, enableImeFlag = 0x00, imeFlagCount = 0;
 	unsigned char screenData[160][144][3];
 
 	struct reg
@@ -223,15 +223,27 @@ int fetchOpcode()
 
 void pushToStack(unsigned short data)
 {
-	stackPointer += 2;
-	writeRam(stackPointer, data);
+	stackPointer -= 2;
+	unsigned char lowHalf = data & 0x00FF;
+	unsigned char highHalf = (data & 0xFF00) >> 8;
+	writeRam(stackPointer, highHalf);
+	writeRam(stackPointer + 1, lowHalf);
 }
 
 unsigned short popFromStack()
 {
-	unsigned short popValue = readRam(stackPointer);
-	stackPointer -= 2;
-	return popValue;
+	unsigned short highHalf = readRam(stackPointer);
+	unsigned short lowHalf = readRam(stackPointer+1);
+	unsigned short poppedValue = (highHalf << 8) | lowHalf;
+
+	//delete the popped value from stack
+	writeRam(stackPointer, 0x0);
+	writeRam(stackPointer+1, 0x0);
+
+	//increment SP so that it points to the most upper stack value 
+	stackPointer += 2;
+
+	return poppedValue;
 }
 
 void requestInterrupt(int interruptNumber)
@@ -718,21 +730,31 @@ bool isLcdEnabled()
 	return ((readRam(LCDC_CTRL) & 0x80) == 0x80);
 }
 
-//0xF0 (0x02B3 PC bei meinem) Befehl dort stehengeblieben. Er lädt von FF00+44 den Wert 00, obwohl es 3E sein sollte. Anscheinend ist das ein LCD wert/register das immer wieder inkrementiert wird. 
-//Dem nachgehen.
 int executeOpcode(unsigned char opcode)
 {
-	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
-	std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
-	std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
-	std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
-	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
-	//bc: 0xed10 opcode:0x20 (danach ff44 ++)
+	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	//std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
+	//std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
+	//std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
+	//std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
+	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 
-	//0x0D first instruction after first loop 
-		//TODO: 0x21 implementierenF
+	if (imeFlagCount > 0)
+	{
+		imeFlagCount--;
+		if (enableImeFlag == 1 )
+		{
+			imeFlag = 0x01;
+			enableImeFlag = 0x00;
+		}
+		else if (disableImeFlag == 1)
+		{
+			imeFlag = 0x00;
+			disableImeFlag = 0x00;
+		}
+	}
+
 	switch (opcode)
 	{
 		case 0x00:
@@ -789,10 +811,11 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*LD A,B*/ case 0x78:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD A,B*/ case 0x78:
+		{
+			registers.A = registers.B;
+			return 4;
+		}
 		///*LD A,C*/ case 0x79:
 		//{
 		//	herewasabreak;
@@ -1031,11 +1054,19 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*LD A,(nn)*/ case 0xFA:
-		//{
-		//	
-		//	herewasabreak;
-		//}
+		/*LD A,(nn)*/ case 0xFA:
+		{
+			unsigned char nHighByte = readRam(programCounter);
+			unsigned char nlowByte = readRam(programCounter + 1);
+			//LSB byte first
+			unsigned short srcAddress =  nlowByte << 8 | nHighByte;
+
+			registers.A = readRam(srcAddress);
+
+			programCounter += 2;
+
+			return 16;
+		}
 		/*LD A,#*/ case 0x3E:
 		{
 			//registers.A = ram[programCounter];
@@ -1176,9 +1207,12 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		///*LD n,nn*/
-		///*LD BC,nn*/ case 0x01: {
-		//	herewasabreak;
-		//}
+		/*LD BC,nn*/ case 0x01: {
+			registers.C = readRam(programCounter);
+			registers.B = readRam(++programCounter);
+			programCounter++;
+			return 12;
+		}
 		///*LD DE,nn*/ case 0x11: {
 		//	herewasabreak;
 		//}
@@ -1219,54 +1253,73 @@ int executeOpcode(unsigned char opcode)
 		//}
 
 
-		///*PUSH AF*/ case 0xF5: {
+		/*PUSH AF*/ case 0xF5: {
+			unsigned short pushVal = registers.A << 8 | registers.F;
+			pushToStack(pushVal);
+			return 16;
+
+		}
+
+
+		/*PUSH BC*/ case 0xC5: {
+			unsigned short pushVal = registers.B << 8 | registers.C;
+			pushToStack(pushVal);
+			return 16;
+
+		}
+
+
+		/*PUSH DE*/ case 0xD5: {
+			unsigned short pushVal = registers.D << 8 | registers.E;
+			pushToStack(pushVal);
+			return 16;
+
+		}
+
+
+		/*PUSH HL*/ case 0xE5: {
+			unsigned short pushVal = registers.H << 8 | registers.L;
+			pushToStack(pushVal);
+			return 16;
+
+		}
+
+
+
+		/*POP AF*/ case 0xF1: 
+		{
+			unsigned short popVal = popFromStack();
+			registers.A = (popVal & 0xF0) >> 8;
+			registers.F = (popVal & 0x0F);
+
+			return 12;
+
+		}
+
+
+		///*POP BC*/ case 0xC1: 
+		//{
 		//	herewasabreak;
 
 		//}
 
 
-		///*PUSH BC*/ case 0xC5: {
+		///*POP DE*/ case 0xD1: 
+		//{
 		//	herewasabreak;
 
 		//}
 
 
-		///*PUSH DE*/ case 0xD5: {
-		//	herewasabreak;
+		/*POP HL*/ case 0xE1: 
+		{
+			unsigned short popVal = popFromStack();
+			registers.H = (popVal & 0xF0) >> 8;
+			registers.L = (popVal & 0x0F);
 
-		//}
+			return 12;
 
-
-		///*PUSH HL*/ case 0xE5: {
-		//	herewasabreak;
-
-		//}
-
-
-
-		///*POP AF*/ case 0xF1: {
-
-		//	herewasabreak;
-
-		//}
-
-
-		///*POP BC*/ case 0xC1: {
-		//	herewasabreak;
-
-		//}
-
-
-		///*POP DE*/ case 0xD1: {
-		//	herewasabreak;
-
-		//}
-
-
-		///*POP HL*/ case 0xE1: {
-		//	herewasabreak;
-
-		//}
+		}
 
 
 		///*ADD A,A*/ case 0x87:
@@ -1423,10 +1476,18 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		///*AND A*/ case 0xA7:
-		//{
-		//	herewasabreak;
-		//}
+		/*AND A*/ case 0xA7:
+		{
+			flags.Z = 0;
+			registers.A &= registers.A;
+			if (registers.A == 0)
+				flags.Z = 1;
+			flags.N = 0;
+			flags.H = 1;
+			flags.C = 0;
+
+			return 4;
+		}
 		///*AND B*/ case 0xA0:
 		//{
 		//	herewasabreak;
@@ -1470,10 +1531,19 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*OR C*/ case 0xB1:
-		//{
-		//	herewasabreak;
-		//}
+		/*OR C*/ case 0xB1:
+		{
+			registers.A |= registers.C;
+			flags.Z = 0;
+			if (registers.A == 0)
+				flags.Z = 1;
+
+			flags.N = 0;
+			flags.H = 0;
+			flags.C = 0;
+
+			return 4;
+		}
 		///*OR D*/ case 0xB2:
 		//{
 		//	herewasabreak;
@@ -1608,10 +1678,24 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*INC A*/ case 0x3C:
-		//{
-		//	herewasabreak;
-		//}
+		/*INC A*/ case 0x3C:
+		{
+			flags.Z = 0;
+			flags.N = 0;
+
+			if ((registers.A & 0x0F) == 0x0F)
+				flags.H = 0;
+
+			if (registers.A == 0)
+				flags.Z = 1;
+
+			registers.A++;
+			
+			
+			return 4;
+
+
+		}
 		///*INC B*/ case 0x04:
 		//{
 		//	herewasabreak;
@@ -1646,10 +1730,22 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*INC (HL)*/ case 0x34:
-		//{
-		//	herewasabreak;
-		//}
+		/*INC (HL)*/ case 0x34:
+		{
+			flags.Z = 0;
+			unsigned short address = registers.H << 8 | registers.L;
+			unsigned char val = readRam(address);
+			val++;
+			if (val == 0)
+				flags.Z = 1;
+			flags.N = 0;
+			if ((val & 0x0F) == 0x0F)
+				flags.H = 1;
+			else
+				flags.H = 0;
+			writeRam(address, val);
+			return 12;
+		}
 
 
 
@@ -1845,10 +1941,14 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		///*DEC BC*/ case 0x0B:
-		//{
-		//	herewasabreak;
-		//}
+		/*DEC BC*/ case 0x0B:
+		{
+			unsigned short nn = registers.B << 8 | registers.C;
+			nn--;
+			registers.B = (nn & 0xFF00 )>> 8;
+			registers.C = nn & 0x00FF;
+			return 8;
+		}
 		///*DEC DE*/ case 0x1B:
 		//{
 		//	herewasabreak;
@@ -1936,16 +2036,19 @@ int executeOpcode(unsigned char opcode)
 
 		/*DI*/ case 0xF3:
 		{
-			imeFlag = 0x00;
+			disableImeFlag = 0x01;
+			imeFlagCount = 1;
 			return 4;
 		}
 
 
 
-		///*EI*/ case 0xFB:
-		//{
-		//	herewasabreak;
-		//}
+		/*EI*/ case 0xFB:
+		{
+			enableImeFlag = 0x01;
+			imeFlagCount = 1;
+			return 4;
+		}
 
 		///*RLCA*/ case 0x07:
 		//{
@@ -2349,10 +2452,18 @@ int executeOpcode(unsigned char opcode)
 			else programCounter++;
 			return 8;
 		}
-		///*JR Z,* */case 0x28:
-		//{
-		//	herewasabreak;
-		//}
+		/*JR Z,* */case 0x28:
+		{
+			if (flags.Z == 0x01)
+			{
+				//programCounter += (signed)ram[programCounter];
+				programCounter += (signed char)readRam(programCounter);
+				programCounter++;
+			}
+			else programCounter++;
+
+			return 8; 
+		}
 		///*JR NC,**/ case 0x30:
 		//{
 		//	herewasabreak;
@@ -2364,8 +2475,8 @@ int executeOpcode(unsigned char opcode)
 
 		/*call nn*/ case 0xcd:
 		{
-			pushToStack(programCounter);
-			std::cout.flush();
+			//push address of NEXT instruction to stack. since it's a 16 bit parameter (nn) we do +2 instead of +1
+			pushToStack(programCounter+2);
 			unsigned char nHighByte = readRam(programCounter);
 			unsigned char nLowByte = readRam(programCounter + 1);
 
@@ -2431,19 +2542,27 @@ int executeOpcode(unsigned char opcode)
 			return 32;
 		}
 
-		///*RET -/-*/ case 0xC9:
-		//{
-		//	herewasabreak;
-		//}
+		/*RET -/-*/ case 0xC9:
+		{
+			programCounter = popFromStack();
+			return 8;
+		}
 
-		///*RET NZ*/ case 0xC0:
-		//{
-		//	herewasabreak;
-		//}
-		///*RET Z*/ case 0xC8:
-		//{
-		//	herewasabreak;
-		//}
+		/*RET NZ*/ case 0xC0:
+		{
+			if (flags.Z == 0)
+				programCounter = popFromStack();
+			
+			return 8;
+		}
+		/*RET Z*/ case 0xC8:
+		{
+
+			if (flags.Z == 1)
+				programCounter = popFromStack();
+
+			return 8;
+		}
 		///*RET NC */case 0xD0:
 		//{
 		//	herewasabreak;
