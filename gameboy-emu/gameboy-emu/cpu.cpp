@@ -44,6 +44,8 @@
 
 void initialize()
 {
+	freopen("output.txt", "w", stdout);
+
 	//prevent automatic flush of cout after every "\n" 
 	std::setvbuf(stdout, nullptr, _IOFBF, BUFSIZ);
 
@@ -732,13 +734,13 @@ bool isLcdEnabled()
 
 int executeOpcode(unsigned char opcode)
 {
-	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	//std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
-	//std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
-	//std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
-	//std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
-	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
+	std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
+	std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
+	std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
+	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 
 	if (imeFlagCount > 0)
 	{
@@ -1207,16 +1209,23 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		///*LD n,nn*/
-		/*LD BC,nn*/ case 0x01: {
+		/*LD BC,nn*/ case 0x01: 
+		{
 			registers.C = readRam(programCounter);
 			registers.B = readRam(++programCounter);
 			programCounter++;
 			return 12;
 		}
-		///*LD DE,nn*/ case 0x11: {
-		//	herewasabreak;
-		//}
-		/*LD HL,nn*/ case 0x21: {
+		/*LD DE,nn*/ case 0x11: 
+		{
+			registers.D = readRam(programCounter);
+			registers.E = readRam(++programCounter);
+			std::cout.flush();
+			programCounter++;
+			return 12;
+		}
+		/*LD HL,nn*/ case 0x21: 
+		{
 			//registers.L = ram[programCounter];
 			//registers.H = ram[++programCounter];
 			registers.L = readRam(programCounter);
@@ -1224,7 +1233,8 @@ int executeOpcode(unsigned char opcode)
 			programCounter++;
 			return 12;
 		}
-		/*LD SP,nn*/ case 0x31: {
+		/*LD SP,nn*/ case 0x31: 
+		{
 			unsigned char nlowByte = readRam(programCounter);
 			unsigned char nHighByte = readRam(programCounter + 1);
 			unsigned short nn = nHighByte << 8 | nlowByte;
@@ -1289,33 +1299,41 @@ int executeOpcode(unsigned char opcode)
 		/*POP AF*/ case 0xF1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.A = (popVal & 0xF0) >> 8;
-			registers.F = (popVal & 0x0F);
+			registers.A = (popVal & 0xFF00) >> 8;
+			registers.F = (popVal & 0x00FF);
 
 			return 12;
 
 		}
 
 
-		///*POP BC*/ case 0xC1: 
-		//{
-		//	herewasabreak;
+		/*POP BC*/ case 0xC1: 
+		{
+			unsigned short popVal = popFromStack();
+			registers.B = (popVal & 0xFF00) >> 8;
+			registers.C = (popVal & 0x00FF);
 
-		//}
+			return 12;
+
+		}
 
 
-		///*POP DE*/ case 0xD1: 
-		//{
-		//	herewasabreak;
+		/*POP DE*/ case 0xD1: 
+		{
+			unsigned short popVal = popFromStack();
+			registers.D = (popVal & 0xFF00) >> 8;
+			registers.E = (popVal & 0x00FF);
 
-		//}
+			return 12;
+
+		}
 
 
 		/*POP HL*/ case 0xE1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.H = (popVal & 0xF0) >> 8;
-			registers.L = (popVal & 0x0F);
+			registers.H = (popVal & 0xFF00) >> 8;
+			registers.L = (popVal & 0x00FF);
 
 			return 12;
 
@@ -1686,10 +1704,11 @@ int executeOpcode(unsigned char opcode)
 			if ((registers.A & 0x0F) == 0x0F)
 				flags.H = 0;
 
+			registers.A++;
+
 			if (registers.A == 0)
 				flags.Z = 1;
 
-			registers.A++;
 			
 			
 			return 4;
@@ -2473,7 +2492,7 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		/*call nn*/ case 0xcd:
+		/*call nn*/ case 0xCD:
 		{
 			//push address of NEXT instruction to stack. since it's a 16 bit parameter (nn) we do +2 instead of +1
 			pushToStack(programCounter+2);
@@ -2572,10 +2591,12 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*RETI -/-*/ case 0xD9:
-		//{
-		//	herewasabreak;
-		//}
+		/*RETI -/-*/ case 0xD9:
+		{
+			programCounter = popFromStack();
+			imeFlag = 1;
+			return 8;
+		}
 
 
 		default:

@@ -3,7 +3,7 @@
 #ifndef CPU_H
 #define CPU_H
 
-#define VERTICAL_BLANKING 0
+#define VERTICAL_BLANKING 1
 #define LCDC 2
 #define TIMER_OVERFLOW 4
 #define SERIAL_IO_COMPLETION 8
