@@ -1519,13 +1519,15 @@ int executeOpcode(unsigned char opcode)
 		/*AND A*/ case 0xA7:
 		{
 			
-			flags.Z = 0;
+			
+			resetBit(&registers.F, Z_FLAG);
 			registers.A &= registers.A;
 			if (registers.A == 0)
-				flags.Z = 1;
-			flags.N = 0;
-			flags.H = 1;
-			flags.C = 0;
+				setBit(&registers.F, Z_FLAG);
+			resetBit(&registers.F, N_FLAG);
+			setBit(&registers.F, H_FLAG);
+			resetBit(&registers.F, C_FLAG);
+
 
 			return 4;
 		}
@@ -1562,12 +1564,12 @@ int executeOpcode(unsigned char opcode)
 			unsigned char n = readRam(programCounter);
 			registers.A &= n;
 			programCounter++;
-			flags.Z = 0;
+			resetBit(&registers.F,Z_FLAG);
 			if (registers.A == 0)
-				flags.Z = 1;
-			flags.N = 0;
-			flags.H = 1;
-			flags.C = 0;
+				setBit(&registers.F,Z_FLAG);
+			resetBit(&registers.F,N_FLAG);
+			setBit(&registers.F,H_FLAG);
+			resetBit(&registers.F,C_FLAG);
 
 
 			return 8;
@@ -1586,13 +1588,13 @@ int executeOpcode(unsigned char opcode)
 		/*OR C*/ case 0xB1:
 		{
 			registers.A |= registers.C;
-			flags.Z = 0;
+			resetBit(&registers.F,Z_FLAG);
 			if (registers.A == 0)
-				flags.Z = 1;
+				setBit(&registers.F,Z_FLAG);
 
-			flags.N = 0;
-			flags.H = 0;
-			flags.C = 0;
+			resetBit(&registers.F,N_FLAG);
+			resetBit(&registers.F,H_FLAG);
+			resetBit(&registers.F,C_FLAG);
 
 			return 4;
 		}
@@ -1627,12 +1629,12 @@ int executeOpcode(unsigned char opcode)
 		{
 			registers.A ^= registers.A;
 			if (registers.A == 0x00)
-				flags.Z = 0x1;
+				setBit(&registers.F, Z_FLAG);
 
-			
-			flags.N = 0x0;
-			flags.C = 0x0;
-			flags.H = 0x0;
+			resetBit(&registers.F, N_FLAG);
+			resetBit(&registers.F, C_FLAG);
+			resetBit(&registers.F, H_FLAG);
+
 			return 4;
 		}
 		///*XOR B*/ case 0xA8:
@@ -1709,21 +1711,24 @@ int executeOpcode(unsigned char opcode)
 			unsigned char res = registers.A - n;
 			if (res == 0)
 			{
-				flags.Z = 1;
+				setBit(&registers.F,Z_FLAG);
 			}
 			else
 			{
-				flags.Z = 0;
+				resetBit(&registers.F,Z_FLAG);
 			}
 			
-			flags.N = 1;
-			//flags.H = (((registers.A) ^ ram[programCounter] ^ res) & 0x10) >> 4;
-			flags.H = (((registers.A) ^ n ^ res) & 0x10) >> 4;
-			registers.A < n ? flags.C = 1 : flags.C = 0;
-			if ((unsigned)registers.A < n) {
-				flags.C = 1;
-			}
-			else flags.C = 0;
+			setBit(&registers.F,N_FLAG);
+			if ((((registers.A) ^ n ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else
+				resetBit(&registers.F, H_FLAG);
+
+			if (registers.A < n)
+				setBit(&registers.F, C_FLAG);
+			else
+				resetBit(&registers.F, C_FLAG);
+
 			programCounter++;
 
 			return 8;
@@ -1732,16 +1737,16 @@ int executeOpcode(unsigned char opcode)
 
 		/*INC A*/ case 0x3C:
 		{
-			flags.Z = 0;
-			flags.N = 0;
+			resetBit(&registers.F,Z_FLAG);
+			resetBit(&registers.F,N_FLAG);
 
 			if ((registers.A & 0x0F) == 0x0F)
-				flags.H = 0;
+				resetBit(&registers.F,H_FLAG);
 
 			registers.A++;
 
 			if (registers.A == 0)
-				flags.Z = 1;
+				setBit(&registers.F,Z_FLAG);
 
 			
 			
@@ -1755,14 +1760,14 @@ int executeOpcode(unsigned char opcode)
 		//}
 		/*INC C*/ case 0x0C:
 		{
-			flags.Z = 0;
+			resetBit(&registers.F,Z_FLAG);
 			if (registers.C == 0x0F)
-				flags.H = 0;
+				resetBit(&registers.F,H_FLAG);
 			else if (registers.C == 0)
-				flags.Z = 1;
+				setBit(&registers.F,Z_FLAG);
 			registers.C++;
 
-			flags.N = 0;
+			resetBit(&registers.F,N_FLAG);
 
 
 			return 4;
@@ -1785,17 +1790,17 @@ int executeOpcode(unsigned char opcode)
 		//}
 		/*INC (HL)*/ case 0x34:
 		{
-			flags.Z = 0;
+			resetBit(&registers.F,Z_FLAG);
 			unsigned short address = registers.H << 8 | registers.L;
 			unsigned char val = readRam(address);
 			val++;
 			if (val == 0)
-				flags.Z = 1;
-			flags.N = 0;
+				setBit(&registers.F,Z_FLAG);
+			resetBit(&registers.F,N_FLAG);
 			if ((val & 0x0F) == 0x0F)
-				flags.H = 1;
+				setBit(&registers.F,H_FLAG);
 			else
-				flags.H = 0;
+				resetBit(&registers.F,H_FLAG);
 			writeRam(address, val);
 			return 12;
 		}
@@ -1809,13 +1814,15 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.A) ^ (1) ^ res) & 0x10) >> 4;
+			if ((((registers.A) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
 			tmp--;
 			registers.A = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			return 4;
 		}
@@ -1826,14 +1833,17 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 			
-			flags.H = (((registers.B) ^ (1) ^ res) & 0x10) >> 4;
+			if((((registers.B) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
+
 			tmp--;
 			registers.B = tmp;
 
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 
 
@@ -1846,13 +1856,16 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.C) ^ (1) ^ res) & 0x10) >> 4;
+			if((((registers.C) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
+
 			tmp--;
 			registers.C = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			return 4;
 		}
@@ -1863,13 +1876,15 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.D) ^ (1) ^ res) & 0x10) >> 4;
+			if( (((registers.D) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
 			tmp--;
 			registers.D = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			
 			return 4;
@@ -1881,13 +1896,15 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.E) ^ (1) ^ res) & 0x10) >> 4;
+			if((((registers.E) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
 			tmp--;
 			registers.E = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			
 			return 4;
@@ -1899,13 +1916,16 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.H) ^ (1) ^ res) & 0x10) >> 4;
+			if((((registers.H) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
+
 			tmp--;
 			registers.H = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			
 			return 4;
@@ -1917,13 +1937,15 @@ int executeOpcode(unsigned char opcode)
 
 
 			if (tmp - 1 == 0x0)
-				flags.Z = 0x1;
-			else flags.Z = 0x0;
+				setBit(&registers.F,Z_FLAG);
+			else resetBit(&registers.F,Z_FLAG);
 
-			flags.H = (((registers.H) ^ (1) ^ res) & 0x10) >> 4;
+			if( (((registers.H) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&registers.F, H_FLAG);
+			else resetBit(&registers.F, H_FLAG);
 			tmp--;
 			registers.H = tmp;
-			flags.N = 0x1;
+			setBit(&registers.F,N_FLAG);
 
 			
 			return 4;
@@ -1936,13 +1958,13 @@ int executeOpcode(unsigned char opcode)
 
 
 		//	//if (tmp - 1 == 0x0)
-		//	//	flags.Z = 0x1;
-		//	//else flags.Z = 0x0;
+		//	//	setBit(&registers.F,Z_FLAG);
+		//	//else resetBit(&registers.F,Z_FLAG);
 
 		//	//flags.H = (((registers.C) ^ (1) ^ res) & 0x10) >> 4;
 		//	//tmp--;
 		//	//registers.C = tmp;
-		//	//flags.N = 0x1;
+		//	//setBit(&registers.F,N_FLAG);
 
 		//	
 		//	herewasabreak;
@@ -2061,8 +2083,8 @@ int executeOpcode(unsigned char opcode)
 		/*CPL*/ case 0x2F:
 		{
 			registers.A = ~registers.A;
-			flags.N = 1;
-			flags.H = 1;
+			setBit(&registers.F,N_FLAG);
+			setBit(&registers.F,H_FLAG);
 			return 4;
 		}
 
@@ -2499,7 +2521,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*JR NZ,**/ case 0x20:
 		{
-			if (flags.Z == 0x00)
+			if (isBitSet(&registers.F, Z_FLAG) == false)
 			{
 				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
@@ -2510,7 +2532,7 @@ int executeOpcode(unsigned char opcode)
 		}
 		/*JR Z,* */case 0x28:
 		{
-			if (flags.Z == 0x01)
+			if (isBitSet(&registers.F, Z_FLAG) == true)
 			{
 				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
@@ -2606,7 +2628,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*RET NZ*/ case 0xC0:
 		{
-			if (flags.Z == 0)
+			if (isBitSet(&registers.F, Z_FLAG) == false)
 				programCounter = popFromStack();
 			
 			return 8;
@@ -2614,7 +2636,7 @@ int executeOpcode(unsigned char opcode)
 		/*RET Z*/ case 0xC8:
 		{
 
-			if (flags.Z == 1)
+			if (isBitSet(&registers.F, Z_FLAG) == true)
 				programCounter = popFromStack();
 
 			return 8;
