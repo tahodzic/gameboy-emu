@@ -1538,10 +1538,21 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*AND #*/ case 0xE6:
-		//{
-		//	herewasabreak;
-		//}
+		/*AND #*/ case 0xE6:
+		{
+			unsigned char n = readRam(programCounter);
+			registers.A &= n;
+			programCounter++;
+			flags.Z = 0;
+			if (registers.A == 0)
+				flags.Z = 1;
+			flags.N = 0;
+			flags.H = 1;
+			flags.C = 0;
+
+
+			return 8;
+		}
 
 
 
@@ -2028,10 +2039,13 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*CPL*/ case 0x2F:
-		//{
-		//	herewasabreak;
-		//}
+		/*CPL*/ case 0x2F:
+		{
+			registers.A = ~registers.A;
+			flags.N = 1;
+			flags.H = 1;
+			return 4;
+		}
 
 
 		///*CCF*/ case 0x3F:
