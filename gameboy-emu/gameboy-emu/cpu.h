@@ -16,11 +16,18 @@
 #define LCDC_STAT 0xFF41
 #define LCDC_LY 0xFF44
 
+#define Z_FLAG 7
+#define N_FLAG 6
+#define H_FLAG 5
+#define C_FLAG 4
 
 
 
 void loadRom(const char *);
 void initialize();
+void setBit(unsigned char * value, int bitNumber);
+void resetBit(unsigned char * value, int bitNumber);
+bool isBitSet(unsigned char * value, int bitNumber);
 int fetchOpcode();
 int executeOpcode(unsigned char);
 void updateFlagRegister();

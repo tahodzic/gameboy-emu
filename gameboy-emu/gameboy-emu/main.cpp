@@ -8,6 +8,7 @@ extern int countCycles;
 
 int main()
 {
+
 	initialize();
 	setupScreen();
 	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
@@ -24,7 +25,6 @@ int main()
 		}
 		countCycles = 0;
 		drawToScreen();
-		//std::cout.flush();
 
 
 	}

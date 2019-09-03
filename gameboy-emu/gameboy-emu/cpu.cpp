@@ -61,9 +61,11 @@ void initialize()
 	registers.E = 0xD8;
 	registers.H = 0x01;
 	registers.L = 0x4D;
-	flags.Z = 0x1;
-	flags.H = 0x1;
-	flags.C = 0x1;
+
+	setBit(&registers.F, Z_FLAG);
+	setBit(&registers.F, H_FLAG);
+	setBit(&registers.F, C_FLAG);
+
 	ram[0xFF05] = 0x00;
 	ram[0xFF06] = 0x00;
 	ram[0xFF07] = 0x00;
@@ -97,6 +99,22 @@ void initialize()
 	ram[0xFFFF] = 0x00;
 
 }
+
+void setBit(unsigned char * value, int bitNumber)
+{
+	*value |= (1 << bitNumber);
+}
+
+void resetBit(unsigned char * value, int bitNumber)
+{
+	*value &= ~(1 << bitNumber);
+}
+
+bool isBitSet(unsigned char * value, int bitNumber)
+{
+	return !!((*value & (1 << bitNumber)));
+}
+
 
 void updateFlagRegister() 
 {
@@ -1500,6 +1518,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*AND A*/ case 0xA7:
 		{
+			
 			flags.Z = 0;
 			registers.A &= registers.A;
 			if (registers.A == 0)
