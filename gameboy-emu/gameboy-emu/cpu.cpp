@@ -116,34 +116,8 @@ bool isBitSet(unsigned char * value, int bitNumber)
 }
 
 
-void updateFlagRegister() 
-{
-	registers.F = flags.Z << 7 | flags.N << 6 | flags.H << 5 | flags.C << 4;
-}
-
 void loadRom(const char *romName)
 {
-	//std::ifstream rom(romName, std::ifstream::binary);
-
-	//rom.seekg(0, rom.end);
-	//int length = rom.tellg();
-	//rom.seekg(0, rom.beg);
-
-	//if (rom)
-	//	rom.read(ram, length);
-	//else
-	//	std::cout << "Couldn't open following rom: " << romName;
-
-	//if (rom)
-	//	std::cout << "Rom opened successfully." << std::endl;
-	//else
-	//	std::cout << "Error: only " << rom.gcount() << " could be read" << std::endl;
-
-	////Close rom, since it's now loaded into ram
-	//rom.close();
-
-	//
-
 	std::FILE* fp = fopen(romName, "rb");
 	if (!fp)
 	{
@@ -174,9 +148,13 @@ void writeRam(unsigned short address, unsigned char data)
 
 		else if (address >= 0xFEA0 && address < 0xFF00)
 		{
-			
+
 		}
 
+		else if (0xFF00 == address)
+		{
+			//GetJoypadState();
+		}
 		else if (address >= 0xFF4C && address < 0xFF80)
 		{
 
@@ -318,7 +296,7 @@ void serviceInterrupt(int interruptNumber)
 	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 
 	//clear the interrupt bit in the status byte
-	irRequestFlagStatus = irRequestFlagStatus & !interruptNumber;
+	irRequestFlagStatus &= ~interruptNumber;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 	pushToStack(programCounter);
 
@@ -2039,7 +2017,32 @@ int executeOpcode(unsigned char opcode)
 
 
 
+		/*CB Prefix*/
+		case 0xCB:
+		{
+			unsigned char cbOpcode = fetchOpcode();
+			switch (cbOpcode)
+			{
+				/*SWAP A*/
+				case 0x37:
+				{
+					unsigned char lowNibble = registers.A & 0x0F;
+					unsigned char highNibble = registers.A & 0xF0;
 
+					registers.A = lowNibble << 4 | highNibble >> 4;
+
+					resetBit(&registers.F, Z_FLAG);
+					if (registers.A == 0)
+						setBit(&registers.F, Z_FLAG);
+
+					resetBit(&registers.F, N_FLAG);
+					resetBit(&registers.F, H_FLAG);
+					resetBit(&registers.F, C_FLAG);
+
+					return 8;
+				}
+			}
+		}
 		///*SWAP A*/ case 0xCB37:
 		//{
 		//	herewasabreak;

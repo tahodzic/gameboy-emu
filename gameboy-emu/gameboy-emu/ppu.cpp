@@ -71,7 +71,6 @@ void drawToScreen()
 			}
 		}
 	}
-
 	SDL_UnlockTexture(texture);
 
 	SDL_RenderClear(renderer);

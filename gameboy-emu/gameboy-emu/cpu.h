@@ -30,7 +30,6 @@ void resetBit(unsigned char * value, int bitNumber);
 bool isBitSet(unsigned char * value, int bitNumber);
 int fetchOpcode();
 int executeOpcode(unsigned char);
-void updateFlagRegister();
 unsigned char readRam(unsigned short address);
 void writeRam(unsigned short  address, unsigned char data);
 //void writeRam(unsigned short  address, unsigned short  data);
