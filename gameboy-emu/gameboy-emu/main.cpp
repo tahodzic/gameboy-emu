@@ -19,7 +19,6 @@ int main()
 			int cycles = executeOpcode(fetchOpcode());
 			i++;
 			countCycles += cycles;
-			//updateFlagRegister();
 			updateGraphics(cycles);
 			checkInterruptRequests();
 		}

@@ -38,13 +38,11 @@ unsigned short popFromStack();
 void requestInterrupt(int interruptNumber);
 void checkInterruptRequests();
 void serviceInterrupt(int interruptNumber);
-void updateGraphics(int cycles);
-void drawScanLine();
-void setLcdStatus();
-bool isLcdEnabled();
 void startDmaTransfer(unsigned char data);
-void renderSprites();
-void renderTiles();
+
+
+
+
 
 #endif
 

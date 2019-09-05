@@ -8,6 +8,7 @@
 /*Extern indicates that screenData was defined in another file
 and that we want to use it here*/
 extern 	unsigned char screenData[160][144][3];
+extern int cyclesScanLine;
 
 SDL_Window *mainWindow = NULL;
 SDL_Renderer *renderer = NULL;
@@ -78,3 +79,392 @@ void drawToScreen()
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
 }
+
+
+void updateGraphics(int cycles)
+{
+	setLcdStatus();
+
+	if (!isLcdEnabled())
+	{
+	}
+	else
+	{
+		cyclesScanLine -= cycles;
+
+		/*when cyclesScanLine is 0, then one entire scanLine has been drawn.*/
+		if (cyclesScanLine <= 0)
+		{
+			unsigned char currentLine = readRam(LCDC_LY);
+			currentLine++;
+			writeRam(LCDC_LY, currentLine);
+
+			cyclesScanLine = CYCLES_PER_SCAN_LINE;
+
+			if (currentLine < 144)
+				drawScanLine();
+
+			else if (currentLine == 144)
+				requestInterrupt(VERTICAL_BLANKING);
+
+			else if (currentLine > 153)
+				writeRam(LCDC_LY, (unsigned short)0);
+		}
+	}
+}
+
+void drawScanLine()
+{
+	unsigned char control = readRam(LCDC_CTRL);
+	if (control & 0x1)
+		renderTiles();
+	if (control & 0x2)
+		renderSprites();
+}
+
+void renderSprites()
+{
+	unsigned char lcdcControl = readRam(LCDC_CTRL);
+	bool use8x16 = false;
+	if (lcdcControl & 0x02)
+		use8x16 = true;
+
+	for (int sprite = 0; sprite < 40; sprite++)
+	{
+		unsigned char index = sprite * 4;
+		unsigned char yPos = readRam(0xFE00 + index) - 16;
+		unsigned char xPos = readRam(0xFE00 + index + 1) - 8;
+		unsigned char spriteLocation = readRam(0xFE00 + index + 2);
+		unsigned char attributes = readRam(0xFE00 + index + 3);
+
+		bool yFlip = (attributes & 0x40) ? true : false;
+		bool xFlip = (attributes & 0x20) ? true : false;
+
+		int ly = readRam(LCDC_LY);
+
+		int ySize = 8;
+		if (use8x16)
+			ySize = 16;
+
+		if ((ly >= yPos) && ly < (yPos + ySize))
+		{
+			int line = ly - yPos;
+
+			//read the line in backwards
+			if (yFlip)
+			{
+				line -= ySize;
+				line *= -1;
+			}
+
+			line *= 2;
+			unsigned short dataAddress = (0x8000 + (spriteLocation * 16) + line);
+			unsigned char data1 = readRam(dataAddress);
+			unsigned char data2 = readRam(dataAddress + 1);
+
+			// its easier to read in from right to left as pixel 0 is
+			// bit 7 in the colour data, pixel 1 is bit 6 etc...
+			for (int tilePixel = 7; tilePixel >= 0; tilePixel--)
+			{
+				int colourBit = tilePixel;
+				// read the sprite in backwards for the x axis
+				if (xFlip)
+				{
+					colourBit -= 7;
+					colourBit *= -1;
+				}
+
+				// combine data 2 and data 1 to get the colour id for this pixel
+				// in the tile
+				int dotData = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+				dotData <<= 1;
+				dotData |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
+
+				unsigned short paletteAddress = (attributes & 0x08) ? 0xFF49 : 0xFF48;
+
+				//lets get the shade from the palette at 0xFF47
+				unsigned char palette = readRam(paletteAddress);
+				int shade;
+
+				//replaces below switch
+				shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
+				shade <<= 1;
+				shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
+
+				int red = 0;
+				int green = 0;
+				int blue = 0;
+
+				// setup the RGB values
+				switch (shade)
+				{
+					case 0: red = 255;  green = 255; blue = 255;   break;
+					case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+					case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+					case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+				}
+
+				int xPix = 0 - tilePixel;
+				xPix += 7;
+				int pixel = xPos + xPix;
+
+				int ly = readRam(LCDC_LY);
+
+				// safety check to make sure what im about
+				// to set is int the 160x144 bounds
+				if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
+				{
+					//skip this cycle of the loop
+				}
+				else
+				{
+					screenData[pixel][ly][0] = red;
+					screenData[pixel][ly][1] = green;
+					screenData[pixel][ly][2] = blue;
+				}
+
+			}
+		}
+
+	}
+}
+void renderTiles()
+{
+	unsigned short tileData = 0, bgMemory = 0;
+	bool unsign = true;
+
+
+	unsigned char scrollY = readRam(0xFF42);
+	unsigned char scrollX = readRam(0xFF43);
+	unsigned char windowY = readRam(0xFF4A);
+	unsigned char windowX = readRam(0xFF4B) - 7;
+
+
+	bool useWindow = false;
+	unsigned char control = readRam(LCDC_CTRL);
+
+
+
+	//window enabled?
+	if (control & 0x20)
+	{
+		if (windowY <= readRam(LCDC_LY))
+			useWindow = true;
+
+	}
+
+	if (control & 0x10)
+	{
+		tileData = 0x8000;
+	}
+	else
+	{
+		tileData = 0x8800;
+		unsign = false;
+	}
+
+	if (!useWindow)
+	{
+		if (control & 0x08)
+			bgMemory = 0x9C00;
+		else
+			bgMemory = 0x9800;
+
+	}
+	else
+	{
+		if (control & 0x40)
+			bgMemory = 0x9C00;
+		else
+			bgMemory = 0x9800;
+	}
+
+	unsigned char yPos = 0;
+
+	if (useWindow)
+		yPos = readRam(LCDC_LY) - windowY;
+	else
+		yPos = scrollY + readRam(LCDC_LY);
+
+	// which of the 8 vertical pixels of the current
+	// tile is the scanline on?
+	unsigned short tileRow = (((unsigned char)(yPos / 8)) * 32);
+
+
+
+	for (int pixel = 0; pixel < 160; pixel++)
+	{
+		unsigned char xPos = pixel + scrollX;
+
+		if (useWindow)
+		{
+			if (pixel >= windowX)
+				xPos = pixel - windowX;
+		}
+		unsigned short tileCol = (xPos / 8);
+		short tileNum;
+
+		unsigned short tileAddress = bgMemory + tileRow + tileCol;
+
+		if (unsign)
+			tileNum = (unsigned char)readRam(tileAddress);
+		else
+			tileNum = (char)readRam(tileAddress);
+
+		unsigned short tileLocation = tileData;
+
+		if (unsign)
+			tileLocation += (tileNum * 16);
+		else
+			tileLocation += ((tileNum + 128) * 16);
+
+
+		unsigned char line = yPos % 8;
+		line *= 2; // each vertical line takes up two bytes of memory
+		unsigned char data1 = readRam(tileLocation + line);
+		unsigned char data2 = readRam(tileLocation + line + 1);
+
+
+		// pixel 0 in the tile is bit 7 of data 1 and data 2
+		// Pixel 1 in the tile is bit 6 of data 1 and data 2 etc.
+		// hence the order needs to be turnt around
+		// xPos goes from left to right (from low number to high number)
+		// bits, however, go from right to left (from low number to high number)
+		// so if you want the bit at xPos 0 you need bit number 7
+		int colourBit = xPos % 8;
+		/*colourBit -= 7;
+		colourBit *= -1;*/
+		colourBit = 7 - colourBit;
+
+		// combine data 2 and data 1 to get the colour id for this pixel
+		// in the tile
+		int pixelColorId = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+		pixelColorId <<= 1;
+		pixelColorId |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
+
+		//lets get the shade from the palette at 0xFF47
+		unsigned char palette = readRam(0xFF47);
+		int shade;
+
+		//get the shade according to palette
+		shade = (palette & (1 << (2 * pixelColorId + 1))) ? 1 : 0;
+		shade <<= 1;
+		shade |= (palette & (1 << (2 * pixelColorId))) ? 1 : 0;
+
+		int red = 0;
+		int green = 0;
+		int blue = 0;
+
+		// setup the RGB values
+		switch (shade)
+		{
+			case 0: red = 255;  green = 255; blue = 255; break;
+			case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
+			case 2: red = 0x77; green = 0x77; blue = 0x77; break;
+			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
+		}
+
+		int ly = readRam(LCDC_LY);
+
+		// safety check to make sure what im about
+		// to set is int the 160x144 bounds
+		if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
+		{
+			//skip this cycle of the loop
+		}
+		else
+		{
+			screenData[pixel][ly][0] = red;
+			screenData[pixel][ly][1] = green;
+			screenData[pixel][ly][2] = blue;
+		}
+	}
+}
+
+
+void setLcdStatus()
+{
+	unsigned char status = readRam(LCDC_STAT);
+	if (!isLcdEnabled())
+	{
+		cyclesScanLine = CYCLES_PER_SCAN_LINE;
+		writeRam(LCDC_LY, (unsigned char)0);
+
+		//set mode to 01 (vblank mode)
+		status &= 0xFC;
+		status |= 0x01;
+		writeRam(LCDC_STAT, status);
+	}
+	else
+	{
+		unsigned char currentLine = readRam(LCDC_LY);
+		unsigned char currentMode = status & 0x03;
+
+		unsigned char modeToSet = 0;
+		unsigned short requestInt = 0;
+
+		//over 144, so go into vblank mode
+		if (currentLine > 144)
+		{
+			modeToSet = 0x01;
+			status &= 0xFC; //delete status bits
+			status |= modeToSet;
+			requestInt = status & 0x10;
+
+		}
+		else
+		{
+			int mode2bounds = 456 - 80;
+			int mode3bounds = mode2bounds - 172;
+
+			if (cyclesScanLine >= mode2bounds)
+			{
+				modeToSet = 0x02;
+				status &= 0xFC;
+				status |= modeToSet;
+				requestInt = status & 0x20;
+			}
+			else if (cyclesScanLine >= mode3bounds)
+			{
+				modeToSet = 0x03;
+				status &= 0xFC;
+				status |= modeToSet;
+			}
+			else
+			{
+				modeToSet = 0x00;
+				status &= 0xFC;
+				status |= modeToSet;
+				requestInt = status & 0x08;
+			}
+
+		}
+
+		if (requestInt && (modeToSet != currentMode))
+			requestInterrupt(0x01);
+
+		//check coincidence flag
+		if (currentLine == readRam(0xFF45))
+		{
+			status |= 0x02;
+			if (status & 0x40)
+				requestInterrupt(0x01);
+		}
+		else
+		{
+			//make sure the coincidence flag (bit 2) is 0
+			status &= 0xFD;
+		}
+
+		writeRam(LCDC_STAT, status);
+
+
+
+	}
+}
+
+bool isLcdEnabled()
+{
+	return ((readRam(LCDC_CTRL) & 0x80) == 0x80);
+}
+
