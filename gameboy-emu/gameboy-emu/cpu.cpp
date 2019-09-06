@@ -312,9 +312,10 @@ int executeOpcode(unsigned char opcode)
 			return 8;
 
 		}
-		///*LD D, n*/
+		/*LD D, n*/
 		//case 0x16:
 		//{
+		//TODO
 		//	herewasabreak;
 
 		//}
@@ -346,10 +347,11 @@ int executeOpcode(unsigned char opcode)
 			registers.A = registers.B;
 			return 4;
 		}
-		///*LD A,C*/ case 0x79:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD A,C*/ case 0x79:
+		{
+			registers.A = registers.C;
+			return 4;
+		}
 		///*LD A,D*/ case 0x7A:
 		//{
 		//	herewasabreak;
@@ -621,10 +623,11 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*LD E,A*/ case 0x5F:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD E,A*/ case 0x5F:
+		{
+			registers.E = registers.A;
+			return 4;
+		}
 		///*LD H,A*/ case 0x67:
 		//{
 		//	herewasabreak;
@@ -870,10 +873,29 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*ADD A,A*/ case 0x87:
-		//{
-		//	herewasabreak;
-		//}
+		/*ADD A,A*/ case 0x87:
+		{
+			resetBit(&registers.F, Z_FLAG);
+			resetBit(&registers.F, C_FLAG);
+			resetBit(&registers.F, H_FLAG);
+			
+			if ((int)(registers.A + registers.A) > 255)
+				setBit(&registers.F, C_FLAG);
+
+			if (((registers.A & 0x0F) + (registers.A & 0x0F)) > 0x0F)
+				setBit(&registers.F, H_FLAG);
+
+			registers.A += registers.A;
+			
+			if (registers.A == 0)
+				setBit(&registers.F, Z_FLAG);
+
+
+
+			resetBit(&registers.F, N_FLAG);
+
+			return 4;
+		}
 		///*ADD A,B*/ case 0x80:
 		//{
 		//	herewasabreak;
@@ -2160,10 +2182,12 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*RST 28H*/ case 0xEF:
-		//{
-		//	herewasabreak;
-		//}
+		/*RST 28H*/ case 0xEF:
+		{
+			pushToStack(programCounter - 1);
+			programCounter = 0x28;
+			return 32;
+		}
 		///*RST 30H*/ case 0xF7:
 		//{
 		//	herewasabreak;
