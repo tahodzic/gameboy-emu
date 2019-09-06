@@ -46,13 +46,14 @@ void initialize()
 {
 	freopen("output.txt", "w", stdout);
 
-	//prevent automatic flush of cout after every "\n" 
+	//prevent automatic flush of cout after every "\n", speeds up extremely
 	std::setvbuf(stdout, nullptr, _IOFBF, BUFSIZ);
 
 	countCycles = 0;
 	cyclesScanLine = CYCLES_PER_SCAN_LINE;
 	programCounter = 0x100;
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
+
 	registers.A = 0x01;
 	registers.F = 0xB0;
 	registers.B = 0x00;
@@ -61,10 +62,6 @@ void initialize()
 	registers.E = 0xD8;
 	registers.H = 0x01;
 	registers.L = 0x4D;
-
-	setBit(&registers.F, Z_FLAG);
-	setBit(&registers.F, H_FLAG);
-	setBit(&registers.F, C_FLAG);
 
 	ram[0xFF05] = 0x00;
 	ram[0xFF06] = 0x00;
@@ -98,35 +95,6 @@ void initialize()
 	ram[0xFF4B] = 0x00;
 	ram[0xFFFF] = 0x00;
 
-}
-
-void setBit(unsigned char * value, int bitNumber)
-{
-	*value |= (1 << bitNumber);
-}
-
-void resetBit(unsigned char * value, int bitNumber)
-{
-	*value &= ~(1 << bitNumber);
-}
-
-bool isBitSet(unsigned char * value, int bitNumber)
-{
-	return !!((*value & (1 << bitNumber)));
-}
-
-
-void loadRom(const char *romName)
-{
-	std::FILE* fp = fopen(romName, "rb");
-	if (!fp)
-	{
-		std::cout << "ROM could not be loaded." << std::endl;
-	}
-	else
-	{
-		fread(ram, 1, 0x8000, fp);
-	}
 }
 
 unsigned char readRam(unsigned short address)
@@ -188,38 +156,6 @@ void startDmaTransfer(unsigned char data)
 	}
 }
 
-int fetchOpcode()
-{
-	unsigned char opcode = 0;
-
-	//for (int i = 0; i < opcodes.at(ram[programCounter]); i++)
-	//{
-	//	opcode += ram[programCounter + i];
-	//}
-
-
-	//opcode = ram[programCounter] & 0xFF;
-	opcode = readRam(programCounter);
-
-	//TODO:
-	//Both cases (0xCB and 0x10) can be easily solved with an additional nested switch
-	//if (opcode == 0x00CB)
-	//{
-	//	programCounter++;
-	//	opcode = opcode << 8 | readRam(programCounter);
-	//}
-
-	//if (opcode == 0x10)
-	//{
-	//	//ram[++programCounter] == 0x00 ? opcode = (opcode << 8 | ram[programCounter]) : programCounter--;
-	//	if (readRam(programCounter+1) == 0x00)
-	//		opcode = (opcode << 8 | readRam(++programCounter));
-	//}
-	programCounter++;
-	//std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
-
-	return opcode;
-}
 
 void pushToStack(unsigned short data)
 {
@@ -312,14 +248,15 @@ void serviceInterrupt(int interruptNumber)
 	}
 }
 
+int fetchOpcode()
+{
+	unsigned char opcode = 0;
 
-
-
-
-
-
-
-
+	opcode = readRam(programCounter);
+	programCounter++;
+	//std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
+	return opcode;
+}
 
 int executeOpcode(unsigned char opcode)
 {
@@ -352,8 +289,6 @@ int executeOpcode(unsigned char opcode)
 		{
 			return 4;
 		}
-
-
 
 		/*LD nn, n*/
 		/*LD B, n*/
@@ -2256,4 +2191,35 @@ int executeOpcode(unsigned char opcode)
 		};
 	}
 
+}
+
+
+
+
+void loadRom(const char *romName)
+{
+	std::FILE* fp = fopen(romName, "rb");
+	if (!fp)
+	{
+		std::cout << "ROM could not be loaded." << std::endl;
+	}
+	else
+	{
+		fread(ram, 1, 0x8000, fp);
+	}
+}
+
+void setBit(unsigned char * value, int bitNumber)
+{
+	*value |= (1 << bitNumber);
+}
+
+void resetBit(unsigned char * value, int bitNumber)
+{
+	*value &= ~(1 << bitNumber);
+}
+
+bool isBitSet(unsigned char * value, int bitNumber)
+{
+	return !!((*value & (1 << bitNumber)));
 }

@@ -25,9 +25,6 @@
 
 void loadRom(const char *);
 void initialize();
-void setBit(unsigned char * value, int bitNumber);
-void resetBit(unsigned char * value, int bitNumber);
-bool isBitSet(unsigned char * value, int bitNumber);
 int fetchOpcode();
 int executeOpcode(unsigned char);
 unsigned char readRam(unsigned short address);
@@ -39,7 +36,9 @@ void requestInterrupt(int interruptNumber);
 void checkInterruptRequests();
 void serviceInterrupt(int interruptNumber);
 void startDmaTransfer(unsigned char data);
-
+void setBit(unsigned char * value, int bitNumber);
+void resetBit(unsigned char * value, int bitNumber);
+bool isBitSet(unsigned char * value, int bitNumber);
 
 
 
