@@ -103,3 +103,25 @@ void onKeyPressed(int key)
 		requestInterrupt(4);
 	}
 }
+
+unsigned char getJoypadState()
+{
+	unsigned char res = ram[0xFF00];
+	// flip all the bits
+	res ^= 0xFF;
+
+	// are we interested in the standard buttons?
+	if (!isBitSet(&res, 4))
+	{
+		unsigned char topJoypad = joypadState >> 4;
+		topJoypad |= 0xF0; // turn the top 4 bits on
+		res &= topJoypad; // show what buttons are pressed
+	}
+	else if (!isBitSet(&res, 5))//directional buttons
+	{
+		unsigned char bottomJoypad = joypadState & 0xF;
+		bottomJoypad |= 0xF0;
+		res &= bottomJoypad;
+	}
+	return res;
+}

@@ -3,6 +3,7 @@
 #endif
 
 #include "cpu.h"
+#include "input.h"
 #include <fstream>
 #include <iostream>
 
@@ -63,6 +64,7 @@ void initialize()
 	registers.H = 0x01;
 	registers.L = 0x4D;
 
+	ram[0xFF00] = 0xFF;
 	ram[0xFF05] = 0x00;
 	ram[0xFF06] = 0x00;
 	ram[0xFF07] = 0x00;
@@ -99,6 +101,11 @@ void initialize()
 
 unsigned char readRam(unsigned short address)
 {
+	 if (address == 0xFF00)
+	 {
+		 return getJoypadState();
+	 }
+	 
 	return ram[address] & 0xFF;
 }
 
@@ -119,10 +126,7 @@ void writeRam(unsigned short address, unsigned char data)
 
 		}
 
-		else if (0xFF00 == address)
-		{
-			//GetJoypadState();
-		}
+
 		else if (address >= 0xFF4C && address < 0xFF80)
 		{
 
@@ -602,15 +606,17 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*LD n,A*/
-		///*LD B,A*/ case 0x47:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,A*/ case 0x4F:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD n,A*/
+		/*LD B,A*/ case 0x47:
+		{
+			registers.B = registers.A;
+			return 4;
+		}
+		/*LD C,A*/ case 0x4F:
+		{
+			registers.C = registers.A;
+			return 4;
+		}
 		///*LD D,A*/ case 0x57:
 		//{
 		//	herewasabreak;
@@ -1019,9 +1025,7 @@ int executeOpcode(unsigned char opcode)
 
 
 		/*AND A*/ case 0xA7:
-		{
-			
-			
+		{	
 			resetBit(&registers.F, Z_FLAG);
 			registers.A &= registers.A;
 			if (registers.A == 0)
@@ -1037,10 +1041,18 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*AND C*/ case 0xA1:
-		//{
-		//	herewasabreak;
-		//}
+		/*AND C*/ case 0xA1:
+		{
+			resetBit(&registers.F, Z_FLAG);
+			registers.A &= registers.C;
+			if (registers.A == 0)
+				setBit(&registers.F, Z_FLAG);
+			resetBit(&registers.F, N_FLAG);
+			setBit(&registers.F, H_FLAG);
+			resetBit(&registers.F, C_FLAG);
+
+			return 4;
+		}
 		///*AND D*/ case 0xA2:
 		//{
 		//	herewasabreak;
@@ -1083,10 +1095,19 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*OR B*/ case 0xB0:
-		//{
-		//	herewasabreak;
-		//}
+		/*OR B*/ case 0xB0:
+		{
+			registers.A |= registers.B;
+			resetBit(&registers.F, Z_FLAG);
+			if (registers.A == 0)
+				setBit(&registers.F, Z_FLAG);
+
+			resetBit(&registers.F, N_FLAG);
+			resetBit(&registers.F, H_FLAG);
+			resetBit(&registers.F, C_FLAG);
+
+			return 4;
+		}
 		/*OR C*/ case 0xB1:
 		{
 			registers.A |= registers.C;
@@ -1143,10 +1164,18 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*XOR C*/ case 0xA9:
-		//{
-		//	herewasabreak;
-		//}
+		/*XOR C*/ case 0xA9:
+		{
+			registers.A ^= registers.C;
+			if (registers.A == 0x00)
+				setBit(&registers.F, Z_FLAG);
+
+			resetBit(&registers.F, N_FLAG);
+			resetBit(&registers.F, C_FLAG);
+			resetBit(&registers.F, H_FLAG);
+
+			return 4;
+		}
 		///*XOR D*/ case 0xAA:
 		//{
 		//	herewasabreak;

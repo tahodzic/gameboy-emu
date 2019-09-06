@@ -3,3 +3,4 @@
 void checkInput();
 void onKeyPressed(int key); 
 void onKeyReleased(int key);
+unsigned char getJoypadState();
