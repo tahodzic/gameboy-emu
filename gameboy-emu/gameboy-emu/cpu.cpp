@@ -313,12 +313,13 @@ int executeOpcode(unsigned char opcode)
 
 		}
 		/*LD D, n*/
-		//case 0x16:
-		//{
-		//TODO
-		//	herewasabreak;
+		case 0x16:
+		{
+			registers.D = readRam(programCounter);
+			programCounter++;
+			return 8;
 
-		//}
+		}
 		///*LD E, n*/
 		//case 0x1E:
 		//{
