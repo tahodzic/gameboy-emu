@@ -336,73 +336,36 @@ int executeOpcode(unsigned char opcode)
 			return 4;
 		}
 
+		/*LD r, (HL)*/
+		case 0x7E: case 0x46: case 0x4E: case 0x56:  case 0x5E: case 0x66: case 0x6E:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char &dst = regs[(opcode >> 3) & 0x7];
 
-		///*LD A,(HL)*/ case 0x7E:
-		//{
-		//	herewasabreak;
-		//}
+			dst = readRam(src);
 
+			return 8;
+		}
 
-		///*LD B,(HL)*/ case 0x46:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD (HL), r*/
+		case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x77:
+		{
+			unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char src = regs[opcode & 0x7];
 
+			writeRam(dst, src);
 
-		///*LD C,(HL)*/ case 0x4E:
-		//{
-		//	herewasabreak;
-		//}
+			return 8;
+		}
 
-		
-		///*LD D,(HL)*/ case 0x56:
-		//{
-		//	herewasabreak;
-		//}		
-
-		///*LD E,(HL)*/ case 0x5E:
-		//{
-		//	herewasabreak;
-		//}
-
-		///*LD H,(HL)*/ case 0x66:
-
-		///*LD L,(HL)*/ case 0x6E:
-		//{
-		//	herewasabreak;
-		//}
-
-
-		///*LD (HL),B*/ case 0x70:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (HL),C*/ case 0x71:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (HL),D*/ case 0x72:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (HL),E*/ case 0x73:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (HL),H*/ case 0x74:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (HL),L*/ case 0x75:
-		//{
-		//	herewasabreak;
-		//}
 		/*LD (HL),n*/ case 0x36:
 		{
 			unsigned char n = readRam(programCounter);
-			unsigned short dstAddress = registers.H << 8 | registers.L;
-			writeRam(dstAddress, n);
+			unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
+
+			writeRam(dst, n);
 			programCounter++;
+
 			return 12;
 		}
 
@@ -444,10 +407,7 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*LD (HL),A*/ case 0x77:
-		//{
-		//	herewasabreak;
-		//}
+
 		/*LD (nn),A*/ case 0xEA:
 		{
 			unsigned char nlowByte = readRam(programCounter);
