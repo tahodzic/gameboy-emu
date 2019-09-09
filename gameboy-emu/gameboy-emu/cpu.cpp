@@ -8,40 +8,47 @@
 #include <iostream>
 
 
-	int cyclesScanLine;
-	unsigned short stackPointer, programCounter;
-	/*Interrupts*/
-	/*
-	Bit 0: V-Blank Interupt
-	Bit 1: LCD Interupt
-	Bit 2: Timer Interupt
-	Bit 4: Joypad Interupt
-	*/
-	char imeFlag = 0x00, disableImeFlag = 0x00, enableImeFlag = 0x00, imeFlagCount = 0;
-	unsigned char screenData[160][144][3];
+int cyclesScanLine;
+unsigned short stackPointer, programCounter;
+/*Interrupts*/
+/*
+Bit 0: V-Blank Interupt
+Bit 1: LCD Interupt
+Bit 2: Timer Interupt
+Bit 4: Joypad Interupt
+*/
+char imeFlag = 0x00, disableImeFlag = 0x00, enableImeFlag = 0x00, imeFlagCount = 0;
+unsigned char screenData[160][144][3];
 
-	struct reg
-	{
-		unsigned char A;
-		unsigned char B;
-		unsigned char C;
-		unsigned char D;
-		unsigned char E;
-		unsigned char F;
-		unsigned char H;
-		unsigned char L;
-	} registers;
+const unsigned char REG_A = 7;
+const unsigned char REG_B = 0;
+const unsigned char REG_C = 1;
+const unsigned char REG_D = 2;
+const unsigned char REG_E = 3;
+const unsigned char REG_H = 4;
+const unsigned char REG_L = 5;
+const unsigned char FLAGS = 6;
 
-	struct flag
-	{
-		unsigned char Z;
-		unsigned char N;
-		unsigned char H;
-		unsigned char C;
-	} flags;
+struct reg
+{
+	unsigned char A;
+	unsigned char B;
+	unsigned char C;
+	unsigned char D;
+	unsigned char E;
+	unsigned char F;
+	unsigned char H;
+	unsigned char L;
+} registers;
 
-	 unsigned char ram[65536];
-	 int countCycles;
+
+//Order is: B, C, D, E, H, L, F, A
+//B: 000, C: 001, D: 010,
+//E: 011, H: 100, L: 101, F: 110, A: 111
+unsigned char regs[8];
+
+unsigned char ram[65536];
+int countCycles;
 
 void initialize()
 {
@@ -63,6 +70,15 @@ void initialize()
 	registers.E = 0xD8;
 	registers.H = 0x01;
 	registers.L = 0x4D;
+
+	regs[REG_A] = 0x01;
+	regs[REG_B] = 0x00;
+	regs[REG_C] = 0x13;
+	regs[REG_D] = 0x00;
+	regs[REG_E] = 0xD8;
+	regs[REG_H] = 0x01;
+	regs[REG_L] = 0x4D;
+	regs[FLAGS] = 0xB0;
 
 	ram[0xFF00] = 0xFF;
 	ram[0xFF05] = 0x00;
@@ -339,212 +355,57 @@ int executeOpcode(unsigned char opcode)
 
 
 		///*LD r1, r2*/
-		///*LD A,A*/ case 0x7F:
-		//{
-		//	herewasabreak;
-		//}
-		/*LD A,B*/ case 0x78:
+		case 0x7F: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: /*LD A, reg*/
+		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x47: /*LD B, reg*/
+		case 0x48: case 0x49: case 0x4A: case 0x4B: case 0x4C: case 0x4D: case 0x4F: /*LD C, reg*/
+		case 0x50: case 0x51: case 0x52: case 0x53: case 0x54: case 0x55: case 0x57: /*LD D, reg*/
+		case 0x58: case 0x59: case 0x5A: case 0x5B: case 0x5C: case 0x5D: case 0x5F: /*LD E, reg*/
+		case 0x60: case 0x61: case 0x62: case 0x63: case 0x64: case 0x65: case 0x67: /*LD H, reg*/
+		case 0x68: case 0x69: case 0x6A: case 0x6B: case 0x6C: case 0x6D: case 0x6F: /*LD L, reg*/
 		{
-			registers.A = registers.B;
+			unsigned char &dst = regs[(opcode >> 3) & 0x7];
+			unsigned char src = regs[opcode & 0x7];
+			dst = src;
 			return 4;
 		}
-		/*LD A,C*/ case 0x79:
-		{
-			registers.A = registers.C;
-			return 4;
-		}
-		///*LD A,D*/ case 0x7A:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD A,E*/ case 0x7B:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD A,H*/ case 0x7C:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD A,L*/ case 0x7D:
-		//{
-		//	herewasabreak;
-		//}
+
+
 		///*LD A,(HL)*/ case 0x7E:
 		//{
 		//	herewasabreak;
 		//}
-		///*LD B,B*/ case 0x40:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD B,C*/ case 0x41:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD B,D*/ case 0x42:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD B,E*/ case 0x43:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD B,H*/ case 0x44:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD B,L*/ case 0x45:
-		//{
-		//	herewasabreak;
-		//}
+
+
 		///*LD B,(HL)*/ case 0x46:
 		//{
 		//	herewasabreak;
 		//}
-		///*LD C,B*/ case 0x48:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,C*/ case 0x49:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,D*/ case 0x4A:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,E*/ case 0x4B:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,H*/ case 0x4C:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD C,L*/ case 0x4D:
-		//{
-		//	herewasabreak;
-		//}
+
+
 		///*LD C,(HL)*/ case 0x4E:
 		//{
 		//	herewasabreak;
 		//}
-		///*LD D,B*/ case 0x50:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD D,C*/ case 0x51:
-		//{
-		//	herewasabreak;
-		//}
 
-		//{
-		//	herewasabreak;
-		//}
-		///*LD D,D*/ case 0x52:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD D,E*/ case 0x53:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD D,H*/ case 0x54:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD D,L*/ case 0x55:
-		//{
-		//	herewasabreak;
-		//}
+		
 		///*LD D,(HL)*/ case 0x56:
 		//{
 		//	herewasabreak;
-		//}
-		///*LD E,B*/ case 0x58:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD E,C*/ case 0x59:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD E,D*/ case 0x5A:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD E,E*/ case 0x5B:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD E,H*/ case 0x5C:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD E,L*/ case 0x5D:
-		//{
-		//	herewasabreak;
-		//}
+		//}		
+
 		///*LD E,(HL)*/ case 0x5E:
 		//{
 		//	herewasabreak;
 		//}
-		///*LD H,B*/ case 0x60:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD H,C*/ case 0x61:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD H,D*/ case 0x62:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD H,E*/ case 0x63:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD H,H*/ case 0x64:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD H,L*/ case 0x65:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*LD H,(HL)*/ case 0x66:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,B*/ case 0x68:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,C*/ case 0x69:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,D*/ case 0x6A:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,E*/ case 0x6B:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,H*/ case 0x6C:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,L*/ case 0x6D:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*LD L,(HL)*/ case 0x6E:
 		//{
 		//	herewasabreak;
 		//}
+
+
 		///*LD (HL),B*/ case 0x70:
 		//{
 		//	herewasabreak;
@@ -609,34 +470,11 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		/*LD n,A*/
-		/*LD B,A*/ case 0x47:
-		{
-			registers.B = registers.A;
-			return 4;
-		}
-		/*LD C,A*/ case 0x4F:
-		{
-			registers.C = registers.A;
-			return 4;
-		}
-		///*LD D,A*/ case 0x57:
-		//{
-		//	herewasabreak;
-		//}
-		/*LD E,A*/ case 0x5F:
-		{
-			registers.E = registers.A;
-			return 4;
-		}
-		///*LD H,A*/ case 0x67:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L,A*/ case 0x6F:
-		//{
-		//	herewasabreak;
-		//}
+
+
+
+	
+
 		///*LD (BC),A*/ case 0x02:
 		//{
 		//	herewasabreak;
