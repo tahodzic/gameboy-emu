@@ -310,48 +310,15 @@ int executeOpcode(unsigned char opcode)
 			return 4;
 		}
 
-		/*LD nn, n*/
-		/*LD B, n*/
-		case 0x06:
+		/*LD r, n*/
+		case 0x06: case 0x0E: case 0x16: case 0x1E: case 0x26: case 0x2E: case 0x3E:
 		{
-			//registers.B = ram[programCounter];
-			registers.B = readRam(programCounter);
+			unsigned char &dst = regs[(opcode >> 3) & 0x7];
+			dst = readRam(programCounter);
 			programCounter++;
+
 			return 8;
 		}
-		/*LD C, n*/
-		case 0x0E:
-		{
-			//registers.C = ram[programCounter];
-			registers.C = readRam(programCounter);
-			programCounter++;
-			return 8;
-
-		}
-		/*LD D, n*/
-		case 0x16:
-		{
-			registers.D = readRam(programCounter);
-			programCounter++;
-			return 8;
-
-		}
-		///*LD E, n*/
-		//case 0x1E:
-		//{
-		//	herewasabreak;
-
-		//}
-		///*LD H, n*/
-		//case 0x26:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD L, n*/
-		//case 0x2E:
-		//{
-		//	herewasabreak;
-		//}
 
 
 		///*LD r1, r2*/
@@ -461,13 +428,7 @@ int executeOpcode(unsigned char opcode)
 
 			return 16;
 		}
-		/*LD A,#*/ case 0x3E:
-		{
-			//registers.A = ram[programCounter];
-			registers.A = readRam(programCounter);
-			programCounter++;
-			return 8;
-		}
+
 
 
 
