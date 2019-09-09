@@ -1530,10 +1530,30 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*ADD HL,DE*/ case 0x19:
-		//{
-		//	herewasabreak;
-		//}
+		/*ADD HL,DE*/ case 0x19:
+		{
+			unsigned short de = registers.D << 8 | registers.E;
+			unsigned short hl = registers.H << 8 | registers.L;
+			unsigned short result = 0x0000;
+
+			resetBit(&registers.F, N_FLAG);
+			resetBit(&registers.F, H_FLAG);
+			resetBit(&registers.F, C_FLAG);
+
+			if ((int)(de + hl) > 0xFFF)
+				setBit(&registers.F, H_FLAG);
+
+			if ((int)(de + hl) > 0xFFFF)
+				setBit(&registers.F, C_FLAG);
+
+			
+			result = de + hl;
+
+			registers.H = (result & 0xFF00) >> 8;
+			registers.L = result & 0x00FF;
+
+			return 8;
+		}
 		///*ADD HL,HL*/ case 0x29:
 		//{
 		//	herewasabreak;
