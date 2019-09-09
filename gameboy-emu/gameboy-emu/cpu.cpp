@@ -504,26 +504,29 @@ int executeOpcode(unsigned char opcode)
 		///*LD n,nn*/
 		/*LD BC,nn*/ case 0x01: 
 		{
-			registers.C = readRam(programCounter);
+			regs[REG_B] = readRam(programCounter+1);
+			regs[REG_C] = readRam(programCounter);
+		/*	registers.C = readRam(programCounter);
 			registers.B = readRam(++programCounter);
-			programCounter++;
+			programCounter++;*/
+
+			programCounter += 2;
 			return 12;
 		}
 		/*LD DE,nn*/ case 0x11: 
 		{
-			registers.D = readRam(programCounter);
-			registers.E = readRam(++programCounter);
-			std::cout.flush();
-			programCounter++;
+			regs[REG_D] = readRam(programCounter+1);
+			regs[REG_E] = readRam(programCounter);
+			programCounter += 2;
+
 			return 12;
 		}
 		/*LD HL,nn*/ case 0x21: 
 		{
-			//registers.L = ram[programCounter];
-			//registers.H = ram[++programCounter];
-			registers.L = readRam(programCounter);
-			registers.H = readRam(++programCounter);
-			programCounter++;
+			regs[REG_H] = readRam(programCounter+1);
+			regs[REG_L] = readRam(programCounter);
+			programCounter += 2;
+
 			return 12;
 		}
 		/*LD SP,nn*/ case 0x31: 
@@ -533,8 +536,8 @@ int executeOpcode(unsigned char opcode)
 			unsigned short nn = nHighByte << 8 | nlowByte;
 
 			stackPointer = nn;
-
 			programCounter += 2;
+
 			return 12;
 		}
 
