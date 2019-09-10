@@ -31,6 +31,13 @@
 //#define REG_L 5
 //#define FLAGS 6
 
+/*
+BC 00
+DE 01
+HL 10
+AF 11
+*/
+
 
 
 void loadRom(const char *);

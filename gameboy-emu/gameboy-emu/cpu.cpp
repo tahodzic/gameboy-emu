@@ -559,35 +559,36 @@ int executeOpcode(unsigned char opcode)
 		//}
 
 
-		/*PUSH AF*/ case 0xF5: {
-			unsigned short pushVal = registers.A << 8 | registers.F;
-			pushToStack(pushVal);
-			return 16;
 
+		/*PUSH AF*/ case 0xF5: {
+			unsigned short pushVal = regs[REG_A] << 8 | regs[FLAGS];
+			pushToStack(pushVal);
+
+			return 16;
 		}
 
 
 		/*PUSH BC*/ case 0xC5: {
-			unsigned short pushVal = registers.B << 8 | registers.C;
+			unsigned short pushVal = regs[REG_B] << 8 | regs[REG_C];
 			pushToStack(pushVal);
-			return 16;
 
+			return 16;
 		}
 
 
 		/*PUSH DE*/ case 0xD5: {
-			unsigned short pushVal = registers.D << 8 | registers.E;
+			unsigned short pushVal = regs[REG_D] << 8 | regs[REG_E];
 			pushToStack(pushVal);
-			return 16;
 
+			return 16;
 		}
 
 
 		/*PUSH HL*/ case 0xE5: {
-			unsigned short pushVal = registers.H << 8 | registers.L;
+			unsigned short pushVal = regs[REG_H] << 8 | regs[REG_L];
 			pushToStack(pushVal);
-			return 16;
 
+			return 16;
 		}
 
 
@@ -595,8 +596,8 @@ int executeOpcode(unsigned char opcode)
 		/*POP AF*/ case 0xF1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.A = (popVal & 0xFF00) >> 8;
-			registers.F = (popVal & 0x00FF);
+			regs[REG_A] = (popVal & 0xFF00) >> 8;
+			regs[FLAGS] = (popVal & 0x00FF);
 
 			return 12;
 
@@ -606,8 +607,8 @@ int executeOpcode(unsigned char opcode)
 		/*POP BC*/ case 0xC1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.B = (popVal & 0xFF00) >> 8;
-			registers.C = (popVal & 0x00FF);
+			regs[REG_B] = (popVal & 0xFF00) >> 8;
+			regs[REG_C] = (popVal & 0x00FF);
 
 			return 12;
 
@@ -617,8 +618,8 @@ int executeOpcode(unsigned char opcode)
 		/*POP DE*/ case 0xD1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.D = (popVal & 0xFF00) >> 8;
-			registers.E = (popVal & 0x00FF);
+			regs[REG_D] = (popVal & 0xFF00) >> 8;
+			regs[REG_E] = (popVal & 0x00FF);
 
 			return 12;
 
@@ -628,65 +629,41 @@ int executeOpcode(unsigned char opcode)
 		/*POP HL*/ case 0xE1: 
 		{
 			unsigned short popVal = popFromStack();
-			registers.H = (popVal & 0xFF00) >> 8;
-			registers.L = (popVal & 0x00FF);
+			regs[REG_H] = (popVal & 0xFF00) >> 8;
+			regs[REG_L] = (popVal & 0x00FF);
 
 			return 12;
 
 		}
 
 
-		/*ADD A,A*/ case 0x87:
+		/*ADD A, r*/ case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		{
-			resetBit(&registers.F, Z_FLAG);
-			resetBit(&registers.F, C_FLAG);
-			resetBit(&registers.F, H_FLAG);
+			unsigned char &paramReg = regs[opcode & 0x3];
+			unsigned char &regA = regs[0x3]; //0x3 is register A
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
 			
-			if ((int)(registers.A + registers.A) > 255)
-				setBit(&registers.F, C_FLAG);
+			if ((int)(regA + paramReg) > 255)
+				setBit(&regs[FLAGS], C_FLAG);
 
-			if (((registers.A & 0x0F) + (registers.A & 0x0F)) > 0x0F)
-				setBit(&registers.F, H_FLAG);
+			if (((regA & 0x0F) + (paramReg & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
 
-			registers.A += registers.A;
+			regA += paramReg;
 			
-			if (registers.A == 0)
-				setBit(&registers.F, Z_FLAG);
-
-
-
-			resetBit(&registers.F, N_FLAG);
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
-		///*ADD A,B*/ case 0x80:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADD A,C*/ case 0x81:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADD A,D*/ case 0x82:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADD A,E*/ case 0x83:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADD A,H*/ case 0x84:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADD A,L*/ case 0x85:
-		//{
-		//	herewasabreak;
-		//}
+		
+
 		///*ADD A,(HL)*/ case 0x86:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*ADD A,#*/ case 0xC6:
 		//{
 		//	herewasabreak;
