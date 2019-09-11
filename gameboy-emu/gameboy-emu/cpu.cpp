@@ -62,6 +62,7 @@ void initialize()
 	programCounter = 0x100;
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
 
+	//standard values for registers and some ram locations according to pandocs
 	registers.A = 0x01;
 	registers.F = 0xB0;
 	registers.B = 0x00;
@@ -281,10 +282,10 @@ int fetchOpcode()
 int executeOpcode(unsigned char opcode)
 {
 	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	std::cout << "af: 0x" << std::uppercase << std::hex << +registers.A << +registers.F << "\n";
-	std::cout << "bc: 0x" << std::uppercase << std::hex << +registers.B << +registers.C << "\n";
-	std::cout << "de: 0x" << std::uppercase << std::hex << +registers.D << +registers.E << "\n";
-	std::cout << "hl: 0x" << std::uppercase << std::hex << +registers.H << +registers.L << "\n";
+	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
 	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
 	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 
@@ -385,7 +386,7 @@ int executeOpcode(unsigned char opcode)
 			//LSB byte first
 			unsigned short srcAddress =  nlowByte << 8 | nHighByte;
 
-			registers.A = readRam(srcAddress);
+			regs[REG_A] = readRam(srcAddress);
 
 			programCounter += 2;
 
@@ -414,7 +415,7 @@ int executeOpcode(unsigned char opcode)
 			unsigned char nHighByte = readRam(programCounter+1);
 			unsigned short nn = nHighByte << 8 | nlowByte;
 
-			writeRam(nn, registers.A);
+			writeRam(nn, regs[REG_A]);
 
 			programCounter += 2;
 
