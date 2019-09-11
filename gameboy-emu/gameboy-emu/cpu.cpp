@@ -63,15 +63,6 @@ void initialize()
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
 
 	//standard values for registers and some ram locations according to pandocs
-	registers.A = 0x01;
-	registers.F = 0xB0;
-	registers.B = 0x00;
-	registers.C = 0x13;
-	registers.D = 0x00;
-	registers.E = 0xD8;
-	registers.H = 0x01;
-	registers.L = 0x4D;
-
 	regs[REG_A] = 0x01;
 	regs[REG_B] = 0x00;
 	regs[REG_C] = 0x13;
@@ -430,8 +421,8 @@ int executeOpcode(unsigned char opcode)
 
 		/*LD (C), A*/ case 0xE2:
 		{
-			unsigned short dstAddress = 0xFF00 + registers.C;
-			writeRam(dstAddress, registers.A);
+			unsigned short dstAddress = 0xFF00 + regs[REG_C];
+			writeRam(dstAddress, regs[REG_A]);
 			return 8;
 		}
 
@@ -447,12 +438,12 @@ int executeOpcode(unsigned char opcode)
 		/*LDD (HL),A*/ case 0x32:
 		{
 			//int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
-			short int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
-			writeRam(regHL, registers.A);
+			short int regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+			writeRam(regHL, regs[REG_A]);
 			//ram[regHL]= registers.A;
 			regHL--;
-			registers.H = (regHL >> 8) & 0xFF;
-			registers.L = regHL & 0xFF;
+			regs[REG_H] = (regHL >> 8) & 0xFF;
+			regs[REG_L] = regHL & 0xFF;
 			return 8;
 		}
 
@@ -462,12 +453,12 @@ int executeOpcode(unsigned char opcode)
 		case 0x2A:
 		{		
 			
-			unsigned short srcAddress = registers.H << 8 | registers.L;
+			unsigned short srcAddress = regs[REG_H] << 8 | regs[REG_L];
 			unsigned char value = readRam(srcAddress);
-			registers.A = value;
+			regs[REG_A] = value;
 			srcAddress++;
-			registers.H = (srcAddress & 0xFF00) >> 8;
-			registers.L = srcAddress & 0x00FF;
+			regs[REG_H] = (srcAddress & 0xFF00) >> 8;
+			regs[REG_L] = srcAddress & 0x00FF;
 			return 8;
 		}
 //
@@ -484,7 +475,7 @@ int executeOpcode(unsigned char opcode)
 		{
 			//int n = ram[programCounter] & 0xFF;
 			unsigned char n = readRam(programCounter);
-			writeRam(0xFF00 + n, registers.A);
+			writeRam(0xFF00 + n, regs[REG_A]);
 			//ram[0xFF00 + n] = registers.A;
 			programCounter++;
 			return 12;
@@ -496,7 +487,7 @@ int executeOpcode(unsigned char opcode)
 			//int n = ram[programCounter] & 0xFF;
 			unsigned char n = readRam(programCounter);
 			//registers.A = ram[0xFF00 + n] & 0xFF;
-			registers.A = readRam(0xFF00+n);
+			regs[REG_A] = readRam(0xFF00+n);
 			///registers.A = 0x3E;
 			programCounter++;
 			return 12;
@@ -820,7 +811,7 @@ int executeOpcode(unsigned char opcode)
 
 			regs[REG_A] &= n;
 
-			if (registers.A == 0)
+			if (regs[REG_A] == 0)
 				setBit(&regs[FLAGS],Z_FLAG);
 
 			programCounter++;
@@ -1150,7 +1141,7 @@ int executeOpcode(unsigned char opcode)
 					paramReg = lowNibble << 4 | highNibble >> 4;
 					
 					if (paramReg == 0)
-						setBit(&registers.F, Z_FLAG);
+						setBit(&regs[FLAGS], Z_FLAG);
 
 					return 8;
 				}
