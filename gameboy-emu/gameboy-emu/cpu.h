@@ -58,6 +58,9 @@ void resetBit(unsigned char * value, int bitNumber);
 bool isBitSet(unsigned char * value, int bitNumber);
 
 
+int getRegPairNumber(unsigned short opcode);
+unsigned short readRegPairValue(int pairNr);
+void writeRegPairValue(int pairNr, unsigned short pairValue);
 
 
 #endif

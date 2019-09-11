@@ -1022,8 +1022,11 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
+		//TODO: refactor this case (and others) to use the new regPair functions
 		/*ADD HL,DE*/ case 0x19:
 		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short regPairValue = readRegPairValue(pairNr);
 			unsigned short de = regs[REG_D] << 8 | regs[REG_E];
 			unsigned short hl = regs[REG_H] << 8 | regs[REG_L];
 			unsigned short result = 0x0000;
@@ -1041,6 +1044,7 @@ int executeOpcode(unsigned char opcode)
 			
 			result = de + hl;
 
+			writeRegPairValue(pairNr, regPairValue);
 			regs[REG_H] = (result & 0xFF00) >> 8;
 			regs[REG_L] = result & 0x00FF;
 
@@ -1740,6 +1744,29 @@ int executeOpcode(unsigned char opcode)
 	}
 
 }
+
+//TODO: make a comment explaining that only certain Registers (BC, DE, HL) work with that function
+
+int getRegPairNumber(unsigned short opcode)
+{
+	int pairNr = (opcode >> 4) & 0x03;
+	return pairNr;
+}
+
+unsigned short readRegPairValue(int pairNr)
+{
+	unsigned short pairValue = regs[pairNr * 2] << 8 | regs[pairNr * 2 + 1];
+
+	return pairValue;
+}
+
+void writeRegPairValue(int pairNr, unsigned short pairValue)
+{
+	regs[pairNr * 2] = (pairValue & 0xFF00) >> 8;
+	regs[pairNr * 2 + 1] = pairValue & 0x00FF;
+}
+
+
 
 
 
