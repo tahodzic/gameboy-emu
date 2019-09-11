@@ -1045,25 +1045,25 @@ int executeOpcode(unsigned char opcode)
 		//}
 		/*ADD HL,DE*/ case 0x19:
 		{
-			unsigned short de = registers.D << 8 | registers.E;
-			unsigned short hl = registers.H << 8 | registers.L;
+			unsigned short de = regs[REG_D] << 8 | regs[REG_E];
+			unsigned short hl = regs[REG_H] << 8 | regs[REG_L];
 			unsigned short result = 0x0000;
 
-			resetBit(&registers.F, N_FLAG);
-			resetBit(&registers.F, H_FLAG);
-			resetBit(&registers.F, C_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
 
 			if ((int)(de + hl) > 0xFFF)
-				setBit(&registers.F, H_FLAG);
+				setBit(&regs[FLAGS], H_FLAG);
 
 			if ((int)(de + hl) > 0xFFFF)
-				setBit(&registers.F, C_FLAG);
+				setBit(&regs[FLAGS], C_FLAG);
 
 			
 			result = de + hl;
 
-			registers.H = (result & 0xFF00) >> 8;
-			registers.L = result & 0x00FF;
+			regs[REG_H] = (result & 0xFF00) >> 8;
+			regs[REG_L] = result & 0x00FF;
 
 			return 8;
 		}
