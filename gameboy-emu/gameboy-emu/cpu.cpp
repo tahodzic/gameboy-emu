@@ -1105,10 +1105,12 @@ int executeOpcode(unsigned char opcode)
 
 		/*DEC BC*/ case 0x0B:
 		{
-			unsigned short nn = registers.B << 8 | registers.C;
+			unsigned short nn = regs[REG_B] << 8 | regs[REG_C];
+
 			nn--;
-			registers.B = (nn & 0xFF00 )>> 8;
-			registers.C = nn & 0x00FF;
+			regs[REG_B] = (nn & 0xFF00) >> 8;
+			regs[REG_C] = nn & 0x00FF;
+
 			return 8;
 		}
 		///*DEC DE*/ case 0x1B:
@@ -1132,54 +1134,30 @@ int executeOpcode(unsigned char opcode)
 			unsigned char cbOpcode = fetchOpcode();
 			switch (cbOpcode)
 			{
-				/*SWAP A*/
-				case 0x37:
+				/*SWAP r*/
+				case 0x37: case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: 
 				{
-					unsigned char lowNibble = registers.A & 0x0F;
-					unsigned char highNibble = registers.A & 0xF0;
+					unsigned char &paramReg = regs[opcode & 0x7];
+					unsigned char lowNibble = paramReg & 0x0F;
+					unsigned char highNibble = paramReg & 0xF0;
 
-					registers.A = lowNibble << 4 | highNibble >> 4;
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
+					resetBit(&regs[FLAGS], Z_FLAG);
 
-					resetBit(&registers.F, Z_FLAG);
-					if (registers.A == 0)
+					paramReg = lowNibble << 4 | highNibble >> 4;
+					
+					if (paramReg == 0)
 						setBit(&registers.F, Z_FLAG);
-
-					resetBit(&registers.F, N_FLAG);
-					resetBit(&registers.F, H_FLAG);
-					resetBit(&registers.F, C_FLAG);
 
 					return 8;
 				}
+
 			}
 		}
-		///*SWAP A*/ case 0xCB37:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP B*/ case 0xCB30:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP C*/ case 0xCB31:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP D*/ case 0xCB32:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP E*/ case 0xCB33:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP H*/ case 0xCB34:
-		//{
-		//	herewasabreak;
-		//}
-		///*SWAP L*/ case 0xCB35:
-		//{
-		//	herewasabreak;
-		//}
+
+
 		///*SWAP (HL)*/ case 0xCB36:
 		//{
 		//	herewasabreak;
@@ -1194,9 +1172,11 @@ int executeOpcode(unsigned char opcode)
 
 		/*CPL*/ case 0x2F:
 		{
-			registers.A = ~registers.A;
-			setBit(&registers.F,N_FLAG);
-			setBit(&registers.F,H_FLAG);
+			setBit(&regs[FLAGS],N_FLAG);
+			setBit(&regs[FLAGS],H_FLAG);
+
+			regs[REG_A] = ~regs[REG_A];
+
 			return 4;
 		}
 
