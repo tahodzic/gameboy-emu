@@ -29,19 +29,6 @@ const unsigned char REG_H = 4;
 const unsigned char REG_L = 5;
 const unsigned char FLAGS = 6;
 
-struct reg
-{
-	unsigned char A;
-	unsigned char B;
-	unsigned char C;
-	unsigned char D;
-	unsigned char E;
-	unsigned char F;
-	unsigned char H;
-	unsigned char L;
-} registers;
-
-
 //Order is: B, C, D, E, H, L, F, A
 //B: 000, C: 001, D: 010,
 //E: 011, H: 100, L: 101, F: 110, A: 111
@@ -104,17 +91,17 @@ void initialize()
 	ram[0xFF4A] = 0x00;
 	ram[0xFF4B] = 0x00;
 	ram[0xFFFF] = 0x00;
-
 }
 
 unsigned char readRam(unsigned short address)
 {
-	 if (address == 0xFF00)
-	 {
-		 return getJoypadState();
-	 }
-	 
-	return ram[address] & 0xFF;
+	if (address == 0xFF00)
+	{
+		return getJoypadState();
+	}
+	int test = ram[address];
+
+	return ram[address];
 }
 
 /*8 Bit writes*/
@@ -167,7 +154,6 @@ void startDmaTransfer(unsigned char data)
 		writeRam(0xFE00 + i, readRam(address + i));
 	}
 }
-
 
 void pushToStack(unsigned short data)
 {
@@ -334,6 +320,7 @@ int executeOpcode(unsigned char opcode)
 			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
 			unsigned char &dst = regs[(opcode >> 3) & 0x7];
 
+	
 			dst = readRam(src);
 
 			return 8;
