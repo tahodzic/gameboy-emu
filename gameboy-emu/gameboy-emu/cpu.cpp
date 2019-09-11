@@ -639,8 +639,8 @@ int executeOpcode(unsigned char opcode)
 
 		/*ADD A, r*/ case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		{
-			unsigned char &paramReg = regs[opcode & 0x3];
-			unsigned char &regA = regs[0x3]; //0x3 is register A
+			unsigned char &paramReg = regs[opcode & 0x7];
+			unsigned char &regA = regs[0x7]; //0x7 is register A
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], C_FLAG);
@@ -789,7 +789,7 @@ int executeOpcode(unsigned char opcode)
 		/*AND r*/
 		case 0xA7: case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:
 		{
-			unsigned char &paramReg = regs[opcode & 0x3];
+			unsigned char &paramReg = regs[opcode & 0x7];
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], N_FLAG);
@@ -831,7 +831,7 @@ int executeOpcode(unsigned char opcode)
 		/*OR r*/
 		case 0xB7: case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5:
 		{
-			unsigned char &paramReg = regs[opcode & 0x3];
+			unsigned char &paramReg = regs[opcode & 0x7];
 
 			resetBit(&regs[FLAGS], N_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
@@ -860,7 +860,7 @@ int executeOpcode(unsigned char opcode)
 		/*XOR r*/
 		case 0xAF: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD:
 		{
-			unsigned char &paramReg = regs[opcode & 0x3];
+			unsigned char &paramReg = regs[opcode & 0x7];
 
 			resetBit(&regs[FLAGS], N_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
@@ -925,104 +925,74 @@ int executeOpcode(unsigned char opcode)
 		{
 			//unsigned char res = registers.A - ram[programCounter];
 			unsigned char n = readRam(programCounter);
-			unsigned char res = registers.A - n;
+			unsigned char res = regs[REG_A] - n;
+
 			if (res == 0)
 			{
-				setBit(&registers.F,Z_FLAG);
+				setBit(&regs[FLAGS],Z_FLAG);
 			}
 			else
 			{
-				resetBit(&registers.F,Z_FLAG);
+				resetBit(&regs[FLAGS],Z_FLAG);
 			}
 			
-			setBit(&registers.F,N_FLAG);
-			if ((((registers.A) ^ n ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else
-				resetBit(&registers.F, H_FLAG);
+			setBit(&regs[FLAGS],N_FLAG);
 
-			if (registers.A < n)
-				setBit(&registers.F, C_FLAG);
+			if ((((regs[REG_A]) ^ n ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);
 			else
-				resetBit(&registers.F, C_FLAG);
+				resetBit(&regs[FLAGS], H_FLAG);
+
+			if (regs[REG_A] < n)
+				setBit(&regs[FLAGS], C_FLAG);
+			else
+				resetBit(&regs[FLAGS], C_FLAG);
 
 			programCounter++;
 
 			return 8;
 		}
 
-
-		/*INC A*/ case 0x3C:
+		/*INC r*/
+		case 0x3C: case 0x04: case 0x0C: case 0x14: case 0x1C: case 0x24: case 0x2C:
 		{
-			resetBit(&registers.F,Z_FLAG);
-			resetBit(&registers.F,N_FLAG);
+			unsigned char &paramReg = regs[(opcode >> 3) & 0x7];
 
-			if ((registers.A & 0x0F) == 0x0F)
-				resetBit(&registers.F,H_FLAG);
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
 
-			registers.A++;
+			if ((regs[REG_A] & 0x0F) == 0x0F)
+				resetBit(&regs[FLAGS], H_FLAG);
 
-			if (registers.A == 0)
-				setBit(&registers.F,Z_FLAG);
+			regs[REG_A]++;
 
-			
-			
-			return 4;
-
-
-		}
-		///*INC B*/ case 0x04:
-		//{
-		//	herewasabreak;
-		//}
-		/*INC C*/ case 0x0C:
-		{
-			resetBit(&registers.F,Z_FLAG);
-			if (registers.C == 0x0F)
-				resetBit(&registers.F,H_FLAG);
-			else if (registers.C == 0)
-				setBit(&registers.F,Z_FLAG);
-			registers.C++;
-
-			resetBit(&registers.F,N_FLAG);
-
+			if (regs[REG_A] == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
-		///*INC D*/ case 0x14:
-		//{
-		//	herewasabreak;
-		//}
-		///*INC E*/ case 0x1C:
-		//{
-		//	herewasabreak;
-		//}
-		///*INC H*/ case 0x24:
-		//{
-		//	herewasabreak;
-		//}
-		///*INC L*/ case 0x2C:
-		//{
-		//	herewasabreak;
-		//}
+		
 		/*INC (HL)*/ case 0x34:
 		{
-			resetBit(&registers.F,Z_FLAG);
-			unsigned short address = registers.H << 8 | registers.L;
+			unsigned short address = regs[REG_H] << 8 | regs[REG_L];
 			unsigned char val = readRam(address);
-			val++;
-			if (val == 0)
-				setBit(&registers.F,Z_FLAG);
-			resetBit(&registers.F,N_FLAG);
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+
 			if ((val & 0x0F) == 0x0F)
-				setBit(&registers.F,H_FLAG);
-			else
-				resetBit(&registers.F,H_FLAG);
+				setBit(&regs[FLAGS], H_FLAG);
+
+			val++;
+			
+			if (val == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
 			writeRam(address, val);
+
 			return 12;
 		}
-
-
 
 		/*DEC A*/ case 0x3D:
 		{
