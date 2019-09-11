@@ -1724,7 +1724,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*RET NZ*/ case 0xC0:
 		{
-			if (isBitSet(&registers.F, Z_FLAG) == false)
+			if (isBitSet(&regs[FLAGS], Z_FLAG) == false)
 				programCounter = popFromStack();
 			
 			return 8;
@@ -1732,7 +1732,7 @@ int executeOpcode(unsigned char opcode)
 		/*RET Z*/ case 0xC8:
 		{
 
-			if (isBitSet(&registers.F, Z_FLAG) == true)
+			if (isBitSet(&regs[FLAGS], Z_FLAG) == true)
 				programCounter = popFromStack();
 
 			return 8;
