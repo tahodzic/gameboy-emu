@@ -786,51 +786,24 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		/*AND A*/ case 0xA7:
-		{	
-			resetBit(&registers.F, Z_FLAG);
-			registers.A &= registers.A;
-			if (registers.A == 0)
-				setBit(&registers.F, Z_FLAG);
-			resetBit(&registers.F, N_FLAG);
-			setBit(&registers.F, H_FLAG);
-			resetBit(&registers.F, C_FLAG);
-
-
-			return 4;
-		}
-		///*AND B*/ case 0xA0:
-		//{
-		//	herewasabreak;
-		//}
-		/*AND C*/ case 0xA1:
+		/*AND r*/
+		case 0xA7: case 0xA0: case 0xA1: case 0xA2: case 0xA3: case 0xA4: case 0xA5:
 		{
-			resetBit(&registers.F, Z_FLAG);
-			registers.A &= registers.C;
-			if (registers.A == 0)
-				setBit(&registers.F, Z_FLAG);
-			resetBit(&registers.F, N_FLAG);
-			setBit(&registers.F, H_FLAG);
-			resetBit(&registers.F, C_FLAG);
+			unsigned char &paramReg = regs[opcode & 0x3];
 
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			setBit(&regs[FLAGS], H_FLAG);
+			
+			regs[REG_A] &= paramReg;
+
+			if (regs[REG_A] == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+			
 			return 4;
 		}
-		///*AND D*/ case 0xA2:
-		//{
-		//	herewasabreak;
-		//}
-		///*AND E*/ case 0xA3:
-		//{
-		//	herewasabreak;
-		//}
-		///*AND H*/ case 0xA4:
-		//{
-		//	herewasabreak;
-		//}
-		///*AND L*/ case 0xA5:
-		//{
-		//	herewasabreak;
-		//}
+	
 		///*AND (HL)*/ case 0xA6:
 		//{
 		//	herewasabreak;
@@ -838,15 +811,18 @@ int executeOpcode(unsigned char opcode)
 		/*AND #*/ case 0xE6:
 		{
 			unsigned char n = readRam(programCounter);
-			registers.A &= n;
-			programCounter++;
-			resetBit(&registers.F,Z_FLAG);
-			if (registers.A == 0)
-				setBit(&registers.F,Z_FLAG);
-			resetBit(&registers.F,N_FLAG);
-			setBit(&registers.F,H_FLAG);
-			resetBit(&registers.F,C_FLAG);
 
+			resetBit(&regs[FLAGS],Z_FLAG);
+			resetBit(&regs[FLAGS],N_FLAG);
+			resetBit(&regs[FLAGS],C_FLAG);
+			setBit(&regs[FLAGS],H_FLAG);
+
+			regs[REG_A] &= n;
+
+			if (registers.A == 0)
+				setBit(&regs[FLAGS],Z_FLAG);
+
+			programCounter++;
 
 			return 8;
 		}
