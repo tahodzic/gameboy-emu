@@ -828,53 +828,25 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-
-		///*OR A*/ case 0xB7:
-		//{
-		//	herewasabreak;
-		//}
-		/*OR B*/ case 0xB0:
+		/*OR r*/
+		case 0xB7: case 0xB0: case 0xB1: case 0xB2: case 0xB3: case 0xB4: case 0xB5:
 		{
-			registers.A |= registers.B;
-			resetBit(&registers.F, Z_FLAG);
-			if (registers.A == 0)
-				setBit(&registers.F, Z_FLAG);
+			unsigned char &paramReg = regs[opcode & 0x3];
 
-			resetBit(&registers.F, N_FLAG);
-			resetBit(&registers.F, H_FLAG);
-			resetBit(&registers.F, C_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], Z_FLAG);
+
+			regs[REG_A] |= paramReg;
+
+			if (regs[REG_A] == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
-		/*OR C*/ case 0xB1:
-		{
-			registers.A |= registers.C;
-			resetBit(&registers.F,Z_FLAG);
-			if (registers.A == 0)
-				setBit(&registers.F,Z_FLAG);
 
-			resetBit(&registers.F,N_FLAG);
-			resetBit(&registers.F,H_FLAG);
-			resetBit(&registers.F,C_FLAG);
 
-			return 4;
-		}
-		///*OR D*/ case 0xB2:
-		//{
-		//	herewasabreak;
-		//}
-		///*OR E*/ case 0xB3:
-		//{
-		//	herewasabreak;
-		//}
-		///*OR H*/ case 0xB4:
-		//{
-		//	herewasabreak;
-		//}
-		///*OR L*/ case 0xB5:
-		//{
-		//	herewasabreak;
-		//}
 		///*OR (HL)*/ case 0xB6:
 		//{
 		//	herewasabreak;
@@ -885,51 +857,27 @@ int executeOpcode(unsigned char opcode)
 		//}
 
 
-
-		/*XOR A*/ case 0xAF:
+		/*XOR r*/
+		case 0xAF: case 0xA8: case 0xA9: case 0xAA: case 0xAB: case 0xAC: case 0xAD:
 		{
-			registers.A ^= registers.A;
-			if (registers.A == 0x00)
-				setBit(&registers.F, Z_FLAG);
+			unsigned char &paramReg = regs[opcode & 0x3];
 
-			resetBit(&registers.F, N_FLAG);
-			resetBit(&registers.F, C_FLAG);
-			resetBit(&registers.F, H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], Z_FLAG);
+
+			regs[REG_A] ^= paramReg;
+
+			if (regs[REG_A] == 0x00)
+				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
-		///*XOR B*/ case 0xA8:
-		//{
-		//	herewasabreak;
-		//}
-		/*XOR C*/ case 0xA9:
-		{
-			registers.A ^= registers.C;
-			if (registers.A == 0x00)
-				setBit(&registers.F, Z_FLAG);
 
-			resetBit(&registers.F, N_FLAG);
-			resetBit(&registers.F, C_FLAG);
-			resetBit(&registers.F, H_FLAG);
 
-			return 4;
-		}
-		///*XOR D*/ case 0xAA:
-		//{
-		//	herewasabreak;
-		//}
-		///*XOR E*/ case 0xAB:
-		//{
-		//	herewasabreak;
-		//}
-		///*XOR H*/ case 0xAC:
-		//{
-		//	herewasabreak;
-		//}
-		///*XOR L */case 0xAD:
-		//{
-		//	herewasabreak;
-		//}
+
+
 		///*XOR (HL)*/ case 0xAE:
 		//{
 		//	herewasabreak;
