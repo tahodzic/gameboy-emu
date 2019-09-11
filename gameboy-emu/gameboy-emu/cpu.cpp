@@ -1208,6 +1208,7 @@ int executeOpcode(unsigned char opcode)
 		{
 			disableImeFlag = 0x01;
 			imeFlagCount = 1;
+
 			return 4;
 		}
 
@@ -1217,6 +1218,7 @@ int executeOpcode(unsigned char opcode)
 		{
 			enableImeFlag = 0x01;
 			imeFlagCount = 1;
+
 			return 4;
 		}
 
@@ -1578,10 +1580,9 @@ int executeOpcode(unsigned char opcode)
 
 		/*JP nn*/ case 0xC3:
 		{
-			//int newAddressToJumpTo = ((ram[programCounter + 1] << 8) + (ram[programCounter] & 0xFF));
-
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 			programCounter = newAddressToJumpTo;
+
 			return 12;
 		}
 
@@ -1613,18 +1614,19 @@ int executeOpcode(unsigned char opcode)
 
 		/*JR NZ,**/ case 0x20:
 		{
-			if (isBitSet(&registers.F, Z_FLAG) == false)
+			if (isBitSet(&regs[FLAGS], Z_FLAG) == false)
 			{
 				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
 			}
 			else programCounter++;
+
 			return 8;
 		}
 		/*JR Z,* */case 0x28:
 		{
-			if (isBitSet(&registers.F, Z_FLAG) == true)
+			if (isBitSet(&regs[FLAGS], Z_FLAG) == true)
 			{
 				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
