@@ -961,12 +961,12 @@ int executeOpcode(unsigned char opcode)
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], N_FLAG);
 
-			if ((regs[REG_A] & 0x0F) == 0x0F)
+			if ((paramReg & 0x0F) == 0x0F)
 				resetBit(&regs[FLAGS], H_FLAG);
 
-			regs[REG_A]++;
+			paramReg++;
 
-			if (regs[REG_A] == 0)
+			if (paramReg == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
@@ -994,149 +994,29 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 
-		/*DEC A*/ case 0x3D:
+		/*DEC r*/
+		case 0x3D: case 0x05: case 0x0D: case 0x15: case 0x1D: case 0x25: case 0x2D:
 		{
-			unsigned char res = registers.A - 1;
-			unsigned char tmp = registers.A;
+			unsigned char &paramReg = regs[(opcode >> 3) & 0x7];
+			unsigned char res = paramReg - 1;
+			unsigned char tmp = paramReg;
 
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
 
 			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
+				setBit(&regs[FLAGS], Z_FLAG);
 
-			if ((((registers.A) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
+			if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);
+
 			tmp--;
-			registers.A = tmp;
-			setBit(&registers.F,N_FLAG);
+			paramReg = tmp;
 
 			return 4;
 		}
-		/*DEC B*/ case 0x05:
-		{
-			unsigned char res = registers.B - 1;
-			unsigned char tmp = registers.B;
 
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-			
-			if((((registers.B) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-
-			tmp--;
-			registers.B = tmp;
-
-			setBit(&registers.F,N_FLAG);
-
-
-
-			return 4;
-		}
-		/*DEC C*/ case 0x0D:
-		{
-			unsigned char res = registers.C - 1;
-			unsigned char tmp = registers.C;
-
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-
-			if((((registers.C) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-
-			tmp--;
-			registers.C = tmp;
-			setBit(&registers.F,N_FLAG);
-
-			return 4;
-		}
-		/*DEC D*/ case 0x15:
-		{
-			unsigned char res = registers.D - 1;
-			unsigned char tmp = registers.D;
-
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-
-			if( (((registers.D) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-			tmp--;
-			registers.D = tmp;
-			setBit(&registers.F,N_FLAG);
-
-			
-			return 4;
-		}
-		/*DEC E*/ case 0x1D:
-		{
-			unsigned char res = registers.E - 1;
-			unsigned char tmp = registers.E;
-
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-
-			if((((registers.E) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-			tmp--;
-			registers.E = tmp;
-			setBit(&registers.F,N_FLAG);
-
-			
-			return 4;
-		}
-		/*DEC H*/ case 0x25:
-		{
-			unsigned char res = registers.H - 1;
-			unsigned char tmp = registers.H;
-
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-
-			if((((registers.H) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-
-			tmp--;
-			registers.H = tmp;
-			setBit(&registers.F,N_FLAG);
-
-			
-			return 4;
-		}
-		/*DEC L*/ case 0x2D:
-		{
-			unsigned char res = registers.H - 1;
-			unsigned char tmp = registers.H;
-
-
-			if (tmp - 1 == 0x0)
-				setBit(&registers.F,Z_FLAG);
-			else resetBit(&registers.F,Z_FLAG);
-
-			if( (((registers.H) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&registers.F, H_FLAG);
-			else resetBit(&registers.F, H_FLAG);
-			tmp--;
-			registers.H = tmp;
-			setBit(&registers.F,N_FLAG);
-
-			
-			return 4;
-		}
 		///*DEC (HL)*/ case 0x35:
 		//{
 		//	//unsigned char res = registers.C - 1;
