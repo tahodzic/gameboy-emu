@@ -371,13 +371,6 @@ int executeOpcode(unsigned char opcode)
 			return 16;
 		}
 
-
-
-
-
-
-	
-
 		///*LD (BC),A*/ case 0x02:
 		//{
 		//	herewasabreak;
@@ -530,32 +523,17 @@ int executeOpcode(unsigned char opcode)
 			return 16;
 		}
 
+		/*PUSH qq*/
+		case 0xC5: case 0xD5: case 0xE5:
+		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short regPairValue = readRegPairValue(pairNr);
 
-		/*PUSH BC*/ case 0xC5: {
-			unsigned short pushVal = regs[REG_B] << 8 | regs[REG_C];
-			pushToStack(pushVal);
-
-			return 16;
-		}
-
-
-		/*PUSH DE*/ case 0xD5: {
-			unsigned short pushVal = regs[REG_D] << 8 | regs[REG_E];
-			pushToStack(pushVal);
+			pushToStack(regPairValue);
 
 			return 16;
 		}
-
-
-		/*PUSH HL*/ case 0xE5: {
-			unsigned short pushVal = regs[REG_H] << 8 | regs[REG_L];
-			pushToStack(pushVal);
-
-			return 16;
-		}
-
-
-
+			   
 		/*POP AF*/ case 0xF1: 
 		{
 			unsigned short popVal = popFromStack();
@@ -566,39 +544,16 @@ int executeOpcode(unsigned char opcode)
 
 		}
 
-
-		/*POP BC*/ case 0xC1: 
+		/*POP qq*/
+		case 0xC1: case 0xD1: case 0xE1:
 		{
+			int pairNr = getRegPairNumber(opcode);
 			unsigned short popVal = popFromStack();
-			regs[REG_B] = (popVal & 0xFF00) >> 8;
-			regs[REG_C] = (popVal & 0x00FF);
+
+			writeRegPairValue(pairNr, popVal);
 
 			return 12;
-
 		}
-
-
-		/*POP DE*/ case 0xD1: 
-		{
-			unsigned short popVal = popFromStack();
-			regs[REG_D] = (popVal & 0xFF00) >> 8;
-			regs[REG_E] = (popVal & 0x00FF);
-
-			return 12;
-
-		}
-
-
-		/*POP HL*/ case 0xE1: 
-		{
-			unsigned short popVal = popFromStack();
-			regs[REG_H] = (popVal & 0xFF00) >> 8;
-			regs[REG_L] = (popVal & 0x00FF);
-
-			return 12;
-
-		}
-
 
 		/*ADD A, r*/ case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		{
