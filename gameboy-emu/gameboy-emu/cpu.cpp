@@ -975,7 +975,8 @@ int executeOpcode(unsigned char opcode)
 			
 			dst += regPairValue;
 
-			writeRegPairValue(pairNr, dst);
+			regs[REG_H] = dst >> 8;
+			regs[REG_L] = dst & 0xFF;
 
 			return 8;
 		}
@@ -1036,7 +1037,7 @@ int executeOpcode(unsigned char opcode)
 				/*SWAP r*/
 				case 0x37: case 0x30: case 0x31: case 0x32: case 0x33: case 0x34: case 0x35: 
 				{
-					unsigned char &paramReg = regs[opcode & 0x7];
+					unsigned char &paramReg = regs[cbOpcode & 0x7];
 					unsigned char lowNibble = paramReg & 0x0F;
 					unsigned char highNibble = paramReg & 0xF0;
 
@@ -1601,7 +1602,7 @@ int executeOpcode(unsigned char opcode)
 		//}
 		/*RST 28H*/ case 0xEF:
 		{
-			pushToStack(programCounter - 1);
+			pushToStack(programCounter);
 			programCounter = 0x28;
 			return 32;
 		}
