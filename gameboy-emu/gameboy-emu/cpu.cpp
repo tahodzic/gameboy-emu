@@ -1017,43 +1017,30 @@ int executeOpcode(unsigned char opcode)
 		//}
 
 
-
-		///*ADD HL,BC*/ case 0x09:
-		//{
-		//	herewasabreak;
-		//}
-		//TODO: refactor this case (and others) to use the new regPair functions
-		/*ADD HL,DE*/ case 0x19:
+		/*ADD HL, ss */ case 0x09: case 0x19: case 0x29:
 		{
 			int pairNr = getRegPairNumber(opcode);
 			unsigned short regPairValue = readRegPairValue(pairNr);
-			unsigned short de = regs[REG_D] << 8 | regs[REG_E];
-			unsigned short hl = regs[REG_H] << 8 | regs[REG_L];
-			unsigned short result = 0x0000;
+			unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
 
 			resetBit(&regs[FLAGS], N_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
 			resetBit(&regs[FLAGS], C_FLAG);
 
-			if ((int)(de + hl) > 0xFFF)
+			if ((int)(regPairValue + dst) > 0xFFF)
 				setBit(&regs[FLAGS], H_FLAG);
 
-			if ((int)(de + hl) > 0xFFFF)
+			if ((int)(regPairValue + dst) > 0xFFFF)
 				setBit(&regs[FLAGS], C_FLAG);
 
 			
-			result = de + hl;
+			dst += regPairValue;
 
-			writeRegPairValue(pairNr, regPairValue);
-			regs[REG_H] = (result & 0xFF00) >> 8;
-			regs[REG_L] = result & 0x00FF;
+			writeRegPairValue(pairNr, dst);
 
 			return 8;
 		}
-		///*ADD HL,HL*/ case 0x29:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*ADD HL,SP*/ case 0x39:
 		//{
 		//	herewasabreak;
@@ -1065,45 +1052,35 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
+		/*INC ss*/
+		case 0x03: case 0x13: case 0x23:
+		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short regPairValue = readRegPairValue(pairNr);
 
+			regPairValue++;
+			writeRegPairValue(pairNr, regPairValue);
 
-		///*INC BC*/ case 0x03:
-		//{
-		//	herewasabreak;
-		//}
-		///*INC DE*/ case 0x13:
-		//{
-		//	herewasabreak;
-		//}
-		///*INC HL*/ case 0x23:
-		//{
-		//	herewasabreak;
-		//}
+			return 8;
+		}
+
 		///*INC SP*/ case 0x33:
 		//{
 		//	herewasabreak;
 		//}
 
-
-
-		/*DEC BC*/ case 0x0B:
+		/*DEC ss*/
+		case 0x0B: case 0x1B: case 0x2B:
 		{
-			unsigned short nn = regs[REG_B] << 8 | regs[REG_C];
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short regPairValue = readRegPairValue(pairNr);
 
-			nn--;
-			regs[REG_B] = (nn & 0xFF00) >> 8;
-			regs[REG_C] = nn & 0x00FF;
+			regPairValue--;
+			writeRegPairValue(pairNr, regPairValue);
 
 			return 8;
 		}
-		///*DEC DE*/ case 0x1B:
-		//{
-		//	herewasabreak;
-		//}
-		///*DEC HL*/ case 0x2B:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*DEC SP*/ case 0x3B:
 		//{
 		//	herewasabreak;
@@ -1745,14 +1722,18 @@ int executeOpcode(unsigned char opcode)
 
 }
 
-//TODO: make a comment explaining that only certain Registers (BC, DE, HL) work with that function
-
+//All opcodes that address register pairs have the register pair number on bit 4 and bit 5. 
 int getRegPairNumber(unsigned short opcode)
 {
 	int pairNr = (opcode >> 4) & 0x03;
 	return pairNr;
 }
 
+//Only works with the register pairs BC, DE, HL. AF doesn't work since index-wise its order is reversed
+//BC: 00 -> B: 00, C:01
+//DE: 01 -> D: 02, C:03 etc.
+//With doubling the regPairNumber you get the first part of the pair, 
+//with incrementing the doulbed regPairNumber you get the second part of the pair
 unsigned short readRegPairValue(int pairNr)
 {
 	unsigned short pairValue = regs[pairNr * 2] << 8 | regs[pairNr * 2 + 1];
@@ -1771,16 +1752,18 @@ void writeRegPairValue(int pairNr, unsigned short pairValue)
 
 
 
-void loadRom(const char *romName)
+bool loadRom(const char *romName)
 {
 	std::FILE* fp = fopen(romName, "rb");
 	if (!fp)
 	{
 		std::cout << "ROM could not be loaded." << std::endl;
+		return false;
 	}
 	else
 	{
 		fread(ram, 1, 0x8000, fp);
+		return true;
 	}
 }
 

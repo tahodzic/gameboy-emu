@@ -40,7 +40,7 @@ AF 11
 
 
 
-void loadRom(const char *);
+bool loadRom(const char *);
 void initialize();
 int fetchOpcode();
 int executeOpcode(unsigned char);

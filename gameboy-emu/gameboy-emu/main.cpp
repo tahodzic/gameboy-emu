@@ -13,7 +13,9 @@ int main()
 
 	initialize();
 	setupScreen();
-	loadRom("D:/Other/Gameboy/Game/Tetris (World).gb");
+	if (!loadRom("D:/Other/Gameboy/Game/Tetris (World).gb"))
+		return -1;
+
 	bool quit = false;
 
 
