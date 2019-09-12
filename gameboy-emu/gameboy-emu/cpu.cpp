@@ -481,33 +481,17 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		///*LD n,nn*/
-		/*LD BC,nn*/ case 0x01: 
+		case 0x01: case 0x11: case 0x21:
 		{
-			regs[REG_B] = readRam(programCounter+1);
-			regs[REG_C] = readRam(programCounter);
-		/*	registers.C = readRam(programCounter);
-			registers.B = readRam(++programCounter);
-			programCounter++;*/
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short nn = readRam(programCounter + 1) << 8 | readRam(programCounter);
 
-			programCounter += 2;
-			return 12;
-		}
-		/*LD DE,nn*/ case 0x11: 
-		{
-			regs[REG_D] = readRam(programCounter+1);
-			regs[REG_E] = readRam(programCounter);
+			writeRegPairValue(pairNr, nn);
 			programCounter += 2;
 
 			return 12;
 		}
-		/*LD HL,nn*/ case 0x21: 
-		{
-			regs[REG_H] = readRam(programCounter+1);
-			regs[REG_L] = readRam(programCounter);
-			programCounter += 2;
 
-			return 12;
-		}
 		/*LD SP,nn*/ case 0x31: 
 		{
 			unsigned char nlowByte = readRam(programCounter);
