@@ -13,7 +13,9 @@
 *.sln
 *.vcxproj
 *.vcxproj.filters
+*.txt
 gameboy-emu/SDL/
+
 
 # User-specific files (MonoDevelop/Xamarin Studio)
 *.userprefs

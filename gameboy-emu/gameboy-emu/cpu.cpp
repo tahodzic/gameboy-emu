@@ -1502,10 +1502,12 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*JP (HL)*/ case 0xE9:
-		//{
-		//	herewasabreak;
-		//}
+		/*JP (HL)*/ case 0xE9:
+		{
+			programCounter = regs[REG_H] << 8 | regs[REG_L];
+
+			return 4;
+		}
 		///*JR n*/ case 0x18:
 		//{
 		//	herewasabreak;
