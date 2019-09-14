@@ -18,7 +18,6 @@ Bit 2: Timer Interupt
 Bit 4: Joypad Interupt
 */
 char imeFlag = 0x00, disableImeFlag = 0x00, enableImeFlag = 0x00, imeFlagCount = 0;
-unsigned char screenData[160][144][3];
 
 const unsigned char REG_A = 7;
 const unsigned char REG_B = 0;
@@ -99,7 +98,6 @@ unsigned char readRam(unsigned short address)
 	{
 		return getJoypadState();
 	}
-	int test = ram[address];
 
 	return ram[address];
 }
@@ -348,14 +346,17 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 
-		///*LD A,(BC)*/ case 0x0A:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD A,(DE)*/ case 0x1A:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD A,(BC)
+		  LD A,(DE)*/
+		case 0x0A: case 0x1A:
+		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short src = readRegPairValue(pairNr);
+
+			regs[REG_A] = readRam(src);
+
+			return 8;
+		}
 
 		/*LD A,(nn)*/ case 0xFA:
 		{
@@ -371,14 +372,18 @@ int executeOpcode(unsigned char opcode)
 			return 16;
 		}
 
-		///*LD (BC),A*/ case 0x02:
-		//{
-		//	herewasabreak;
-		//}
-		///*LD (DE),A*/ case 0x12:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD (BC),A*/
+		/*LD (DE),A*/
+		case 0x02: case 0x12:
+		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short dstAddress = readRegPairValue(pairNr);
+			unsigned char &src = regs[REG_A];
+
+			writeRam(dstAddress, src);
+
+			return 8;
+		}
 
 		/*LD (nn),A*/ case 0xEA:
 		{
@@ -394,10 +399,12 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*LD A, (C)*/ case 0xF2:
-		//{
-		//	herewasabreak;
-		//}
+		/*LD A, (C)*/ case 0xF2:
+		{
+			unsigned short srcAddress = 0xFF00 + regs[REG_C];
+			regs[REG_A] = readRam(srcAddress);
+			return 8;
+		}
 
 		/*LD (C), A*/ case 0xE2:
 		{
@@ -441,22 +448,28 @@ int executeOpcode(unsigned char opcode)
 			regs[REG_L] = srcAddress & 0x00FF;
 			return 8;
 		}
-//
-//		/*LD (HLI),A */
-///*LD (HL+),A */
-///*LDI (HL),A*/
-//		case 0x22:
-//		{
-//			herewasabreak;
-//		}
-//
+
+		/*LD (HLI),A */
+		/*LD (HL+),A */
+		/*LDI (HL),A*/
+		case 0x22:
+		{
+			int pairNr = getRegPairNumber(opcode);
+			unsigned short dst = readRegPairValue(pairNr);
+
+			writeRam(dst, regs[REG_A]);
+			dst++;
+			writeRegPairValue(pairNr, dst);
+
+			return 8;
+		}
+
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
 			//int n = ram[programCounter] & 0xFF;
 			unsigned char n = readRam(programCounter);
 			writeRam(0xFF00 + n, regs[REG_A]);
-			//ram[0xFF00 + n] = registers.A;
 			programCounter++;
 			return 12;
 		}
@@ -1054,6 +1067,21 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*RES b, r*/
+				case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
+				{
+					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+					unsigned char *paramReg = &regs[cbOpcode & 0x07];
+
+					resetBit(paramReg, bitNumber);
+
+					return 8;
+				}
+
+				default:
+				{
+					std::cout << "0xCB Opcode: " << std::hex << cbOpcode << " not yet implemented.";
+				}
 			}
 		}
 
@@ -1444,34 +1472,9 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*RES b,A*/ case 0xCB87:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,B*/ case 0xCB80:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,C*/ case 0xCB81:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,D*/ case 0xCB82:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,E*/ case 0xCB83:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,H*/ case 0xCB84:
-		//{
-		//	herewasabreak;
-		//}
-		///*RES b,L*/ case 0xCB85:
-		//{
-		//	herewasabreak;
-		//}
+		
+
+
 		///*RES b,(HL)*/ case 0xCB86:
 		//{
 		//	herewasabreak;
@@ -1486,22 +1489,53 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 
-		///*JP NZ,nn*/ case 0xC2:
-		//{
-		//	herewasabreak;
-		//}
-		///*JP Z,nn*/ case 0xCA:
-		//{
-		//	herewasabreak;
-		//}
-		///*JP NC,nn*/ case 0xD2:
-		//{
-		//	herewasabreak;
-		//}
-		///*JP C,nn*/ case 0xDA:
-		//{
-		//	herewasabreak;
-		//}
+		/*JP NZ,nn*/ case 0xC2:
+		{
+			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
+
+			if (!isBitSet(&regs[FLAGS], Z_FLAG))
+				programCounter = newAddressToJumpTo;
+			else
+				programCounter++;
+
+			return 12;
+		}
+
+		/*JP Z,nn*/ case 0xCA:
+		{
+			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
+
+			if (isBitSet(&regs[FLAGS], Z_FLAG))
+				programCounter = newAddressToJumpTo;
+			else
+				programCounter++;
+
+			return 12;
+		}
+
+		/*JP NC,nn*/ case 0xD2:
+		{
+			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
+
+			if (!isBitSet(&regs[FLAGS], C_FLAG))
+				programCounter = newAddressToJumpTo;
+			else
+				programCounter++;
+
+			return 12;
+		}
+
+		/*JP C,nn*/ case 0xDA:
+		{
+			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
+
+			if (isBitSet(&regs[FLAGS], C_FLAG))
+				programCounter = newAddressToJumpTo;
+			else
+				programCounter++;
+
+			return 12;
+		}
 
 		/*JP (HL)*/ case 0xE9:
 		{
@@ -1509,10 +1543,15 @@ int executeOpcode(unsigned char opcode)
 
 			return 4;
 		}
-		///*JR n*/ case 0x18:
-		//{
-		//	herewasabreak;
-		//}
+
+		/*JR n*/ case 0x18:
+		{
+			unsigned char n = readRam(programCounter);
+
+			programCounter += (signed char)n;
+
+			return 8;
+		}
 
 		/*JR NZ,**/ case 0x20:
 		{

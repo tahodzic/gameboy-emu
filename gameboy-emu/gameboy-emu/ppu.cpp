@@ -7,11 +7,12 @@
 
 /*Extern indicates that screenData was defined in another file
 and that we want to use it here*/
-extern 	unsigned char screenData[160][144][3];
+unsigned char screenData[160][144][3];
 extern int cyclesScanLine;
 
 SDL_Window *mainWindow = NULL;
 SDL_Renderer *renderer = NULL;
+SDL_Texture* texture = NULL;
 
 void setupScreen()
 {
@@ -31,27 +32,28 @@ void setupScreen()
 	SDL_RenderClear(renderer); // fill the scene with white
 	SDL_RenderPresent(renderer); // copy to screen
 
-}
-void drawToScreen()
-{
 	/*Create the texture in which we blit screenData.
 	SDL_PIXELFORMAT_ARGB8888 = Alpha Red Green Blue, the 8s indicate depth (in bit)*/
-	SDL_Texture* texture = SDL_CreateTexture(renderer,
+	texture = SDL_CreateTexture(renderer,
 		SDL_PIXELFORMAT_ARGB8888,
 		SDL_TEXTUREACCESS_STREAMING,
 		160,
 		144);
-
-	/*This pointer needs to be only declared, not defined.
-	Later with SDL_LockTexture, this pointer will be assigned the starting address of the first pixel of the texture.*/
-	Uint32* pixels;
-	/*Pitch = row * size of pixel in bytes  (row = number of pixels per row)    */
-	int pitch = 4 * 160;
 	/*Format will be filled with SDL_QueryTexture (or just hard copy [though not recommended] the format from SDL_CreateTexture above*/
 	Uint32 format = 0;
 
 	if (SDL_QueryTexture(texture, &format, NULL, NULL, NULL))
 		std::cout << "SDL_QueryTexture failed. Error: " << SDL_GetError();
+}
+
+void drawToScreen()
+{
+
+	/*This pointer needs to be only declared, not defined.
+	Later with SDL_LockTexture, this pointer will be assigned the starting address of the first pixel of the texture.*/
+	Uint32* pixels = nullptr;
+	/*Pitch = row * size of pixel in bytes  (row = number of pixels per row)    */
+	int pitch = 4 * 160;
 
 	if (SDL_LockTexture(texture, NULL,(void**) &pixels, &pitch))
 		std::cout << "SDL_LockTexture failed. Error: " << SDL_GetError();
@@ -72,6 +74,7 @@ void drawToScreen()
 			}
 		}
 	}
+
 	SDL_UnlockTexture(texture);
 
 	SDL_RenderClear(renderer);
@@ -241,19 +244,19 @@ void renderTiles()
 
 
 	bool useWindow = false;
-	unsigned char control = readRam(LCDC_CTRL);
+	unsigned char lcdcControl = readRam(LCDC_CTRL);
 
 
 
 	//window enabled?
-	if (control & 0x20)
+	if (lcdcControl & 0x20)
 	{
 		if (windowY <= readRam(LCDC_LY))
 			useWindow = true;
 
 	}
 
-	if (control & 0x10)
+	if (lcdcControl & 0x10)
 	{
 		tileData = 0x8000;
 	}
@@ -265,7 +268,7 @@ void renderTiles()
 
 	if (!useWindow)
 	{
-		if (control & 0x08)
+		if (lcdcControl & 0x08)
 			bgMemory = 0x9C00;
 		else
 			bgMemory = 0x9800;
@@ -273,7 +276,7 @@ void renderTiles()
 	}
 	else
 	{
-		if (control & 0x40)
+		if (lcdcControl & 0x40)
 			bgMemory = 0x9C00;
 		else
 			bgMemory = 0x9800;
@@ -385,6 +388,7 @@ void renderTiles()
 void setLcdStatus()
 {
 	unsigned char status = readRam(LCDC_STAT);
+
 	if (!isLcdEnabled())
 	{
 		cyclesScanLine = CYCLES_PER_SCAN_LINE;
@@ -392,7 +396,8 @@ void setLcdStatus()
 
 		//set mode to 01 (vblank mode)
 		status &= 0xFC;
-		status |= 0x01;
+		setBit(&status, 0);
+
 		writeRam(LCDC_STAT, status);
 	}
 	else
