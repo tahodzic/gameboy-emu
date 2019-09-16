@@ -36,6 +36,12 @@ unsigned char regs[8];
 unsigned char ram[65536];
 int countCycles;
 
+
+/*Debug purposes*/
+int debugCount = 0;
+/*****************/
+
+
 void initialize()
 {
 	freopen("output.txt", "w", stdout);
@@ -256,13 +262,17 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-	//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-	//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-	//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	debugCount++;
+	if (debugCount > 9'000'000) 
+	{
+		std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+		std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+		std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+		std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+		std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+		std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+		std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	}
 
 	if (imeFlagCount > 0)
 	{
@@ -413,24 +423,33 @@ int executeOpcode(unsigned char opcode)
 			return 8;
 		}
 
-		///*LD A,(HLD)*/
-		///*LD A,(HL-)*/
-		///*LDD A,(HL)*/ case 0x3A:
-		//{
-		//	herewasabreak;
-		//}
-
-		/*LD (HLD),A */
-		/*LD (HL-),A */
-		/*LDD (HL),A*/ case 0x32:
+		/*LD A,(HLD)*/
+		/*LD A,(HL-)*/
+		/*LDD A,(HL)*/ 
+		case 0x3A:
 		{
-			//int regHL = ((registers.H << 8) & 0xFF00) + (registers.L & 0xFF);
-			short int regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
-			writeRam(regHL, regs[REG_A]);
-			//ram[regHL]= registers.A;
+			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+
+			regs[REG_A] = readRam(regHL);
 			regHL--;
 			regs[REG_H] = (regHL >> 8) & 0xFF;
 			regs[REG_L] = regHL & 0xFF;
+			std::cout.flush();
+			return 8;
+		}
+
+		/*LD (HLD),A */
+		/*LD (HL-),A */
+		/*LDD (HL),A*/ 
+		case 0x32:
+		{
+			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+
+			writeRam(regHL, regs[REG_A]);
+			regHL--;
+			regs[REG_H] = (regHL >> 8) & 0xFF;
+			regs[REG_L] = regHL & 0xFF;
+
 			return 8;
 		}
 
@@ -1084,11 +1103,17 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*SLA r*/
+				case 0x27: case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25:
+				{
+
+					return 8;
+				}
 				default:
 				{
 					std::cout << "0xCB Opcode: " << std::hex << (unsigned char)cbOpcode << " not yet implemented.";
-					return 0;
 					std::cout.flush();
+					return 0;
 				}
 			}
 		}
