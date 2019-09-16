@@ -256,13 +256,13 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+	//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+	//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 
 	if (imeFlagCount > 0)
 	{
@@ -891,9 +891,10 @@ int executeOpcode(unsigned char opcode)
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
 
 			if ((paramReg & 0x0F) == 0x0F)
-				resetBit(&regs[FLAGS], H_FLAG);
+				setBit(&regs[FLAGS], H_FLAG);
 
 			paramReg++;
 
@@ -948,25 +949,30 @@ int executeOpcode(unsigned char opcode)
 			return 4;
 		}
 
-		///*DEC (HL)*/ case 0x35:
-		//{
-		//	//unsigned char res = registers.C - 1;
-		//	//unsigned char tmp = registers.C;
+		/*DEC (HL)*/ case 0x35:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+			unsigned char res = val - 1;
+			unsigned char tmp = val;
 
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
 
+			if (tmp - 1 == 0x0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
-		//	//if (tmp - 1 == 0x0)
-		//	//	setBit(&registers.F,Z_FLAG);
-		//	//else resetBit(&registers.F,Z_FLAG);
+			if ((((val) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);
 
-		//	//flags.H = (((registers.C) ^ (1) ^ res) & 0x10) >> 4;
-		//	//tmp--;
-		//	//registers.C = tmp;
-		//	//setBit(&registers.F,N_FLAG);
+			tmp--;
+			val = tmp;
 
-		//	
-		//	herewasabreak;
-		//}
+			writeRam(src, val);
+			
+			return 12;
+		}
 
 
 		/*ADD HL, ss */ case 0x09: case 0x19: case 0x29:
@@ -1080,7 +1086,9 @@ int executeOpcode(unsigned char opcode)
 
 				default:
 				{
-					std::cout << "0xCB Opcode: " << std::hex << cbOpcode << " not yet implemented.";
+					std::cout << "0xCB Opcode: " << std::hex << (unsigned char)cbOpcode << " not yet implemented.";
+					return 0;
+					std::cout.flush();
 				}
 			}
 		}
@@ -1496,7 +1504,7 @@ int executeOpcode(unsigned char opcode)
 			if (!isBitSet(&regs[FLAGS], Z_FLAG))
 				programCounter = newAddressToJumpTo;
 			else
-				programCounter++;
+				programCounter += 2;
 
 			return 12;
 		}
@@ -1508,7 +1516,7 @@ int executeOpcode(unsigned char opcode)
 			if (isBitSet(&regs[FLAGS], Z_FLAG))
 				programCounter = newAddressToJumpTo;
 			else
-				programCounter++;
+				programCounter += 2;
 
 			return 12;
 		}
@@ -1520,7 +1528,7 @@ int executeOpcode(unsigned char opcode)
 			if (!isBitSet(&regs[FLAGS], C_FLAG))
 				programCounter = newAddressToJumpTo;
 			else
-				programCounter++;
+				programCounter += 2;
 
 			return 12;
 		}
@@ -1532,7 +1540,7 @@ int executeOpcode(unsigned char opcode)
 			if (isBitSet(&regs[FLAGS], C_FLAG))
 				programCounter = newAddressToJumpTo;
 			else
-				programCounter++;
+				programCounter += 2;
 
 			return 12;
 		}
@@ -1549,6 +1557,7 @@ int executeOpcode(unsigned char opcode)
 			unsigned char n = readRam(programCounter);
 
 			programCounter += (signed char)n;
+			programCounter++;
 
 			return 8;
 		}

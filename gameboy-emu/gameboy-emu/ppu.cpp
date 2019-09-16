@@ -88,10 +88,7 @@ void updateGraphics(int cycles)
 {
 	setLcdStatus();
 
-	if (!isLcdEnabled())
-	{
-	}
-	else
+	if (isLcdEnabled())
 	{
 		cyclesScanLine -= cycles;
 
@@ -114,6 +111,8 @@ void updateGraphics(int cycles)
 				writeRam(LCDC_LY, (unsigned short)0);
 		}
 	}
+
+	
 }
 
 void drawScanLine()
@@ -399,77 +398,80 @@ void setLcdStatus()
 		setBit(&status, 0);
 
 		writeRam(LCDC_STAT, status);
+
+		return;
+	}
+
+	unsigned char currentLine = readRam(LCDC_LY);
+	unsigned char currentMode = status & 0x03;
+
+	unsigned char modeToSet = 0;
+	bool requestInt = 0;
+
+	//Mode 1: over 144, so go into vblank mode
+	if (currentLine > 144)
+	{
+		modeToSet = 0x01;
+		setBit(&status, 0);
+		resetBit(&status, 1);
+		requestInt = isBitSet(&status, 4);
 	}
 	else
 	{
-		unsigned char currentLine = readRam(LCDC_LY);
-		unsigned char currentMode = status & 0x03;
+		int mode2bounds = 456 - 80;
+		int mode3bounds = mode2bounds - 172;
 
-		unsigned char modeToSet = 0;
-		unsigned short requestInt = 0;
-
-		//over 144, so go into vblank mode
-		if (currentLine > 144)
+		//Mode 2 (Searching OAM-RAM Mode)
+		if (cyclesScanLine >= mode2bounds)
 		{
-			modeToSet = 0x01;
-			status &= 0xFC; //delete status bits
-			status |= modeToSet;
-			requestInt = status & 0x10;
-
+			modeToSet = 0x02;
+			setBit(&status, 1);
+			resetBit(&status, 0);
+			requestInt = isBitSet(&status, 5);
 		}
+		//Mode 3 (Transfer Data to LCD Driver mode)
+		else if (cyclesScanLine >= mode3bounds)
+		{
+			modeToSet = 0x03;
+			setBit(&status, 0);
+			setBit(&status, 1);
+		}
+		//Mode 0 (H-Blank mode)
 		else
 		{
-			int mode2bounds = 456 - 80;
-			int mode3bounds = mode2bounds - 172;
-
-			if (cyclesScanLine >= mode2bounds)
-			{
-				modeToSet = 0x02;
-				status &= 0xFC;
-				status |= modeToSet;
-				requestInt = status & 0x20;
-			}
-			else if (cyclesScanLine >= mode3bounds)
-			{
-				modeToSet = 0x03;
-				status &= 0xFC;
-				status |= modeToSet;
-			}
-			else
-			{
-				modeToSet = 0x00;
-				status &= 0xFC;
-				status |= modeToSet;
-				requestInt = status & 0x08;
-			}
+			modeToSet = 0x00;
+			resetBit(&status, 0);
+			resetBit(&status, 1);
+			requestInt = isBitSet(&status, 3);
 
 		}
-
-		if (requestInt && (modeToSet != currentMode))
-			requestInterrupt(0x01);
-
-		//check coincidence flag
-		if (currentLine == readRam(0xFF45))
-		{
-			status |= 0x02;
-			if (status & 0x40)
-				requestInterrupt(0x01);
-		}
-		else
-		{
-			//make sure the coincidence flag (bit 2) is 0
-			status &= 0xFD;
-		}
-
-		writeRam(LCDC_STAT, status);
-
-
 
 	}
+
+	//entered a new mode so request interrupt
+	if (requestInt && (modeToSet != currentMode))
+		requestInterrupt(0x01);
+
+	//check coincidence flag
+	if (currentLine == readRam(0xFF45))
+	{
+		setBit(&status, 2);
+		if (isBitSet(&status, 6))
+			requestInterrupt(0x01);
+	}
+	else
+	{
+		//make sure the coincidence flag (bit 2) is 0
+		resetBit(&status, 2);
+	}
+
+	writeRam(LCDC_STAT, status);
 }
 
 bool isLcdEnabled()
 {
-	return ((readRam(LCDC_CTRL) & 0x80) == 0x80);
+	unsigned char lcdcCtrl = readRam(LCDC_CTRL);
+
+	return isBitSet(&lcdcCtrl, 0x7);
 }
 
