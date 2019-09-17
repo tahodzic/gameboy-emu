@@ -262,17 +262,17 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	debugCount++;
-	if (debugCount > 9'000'000) 
-	{
-		std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-		std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-		std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-		std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-		std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-		std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-		std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
-	}
+	//debugCount++;
+	//if (debugCount > 1'000'000) 
+	//{
+	//	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	//	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	//	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+	//	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+	//	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+	//	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	//	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	//}
 
 	if (imeFlagCount > 0)
 	{
@@ -590,7 +590,7 @@ int executeOpcode(unsigned char opcode)
 		/*ADD A, r*/ case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		{
 			unsigned char &paramReg = regs[opcode & 0x7];
-			unsigned char &regA = regs[0x7]; //0x7 is register A
+			unsigned char &regA = regs[REG_A]; 
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], C_FLAG);
@@ -614,10 +614,31 @@ int executeOpcode(unsigned char opcode)
 
 		///*ADD A,(HL)*/ case 0x86:
 
-		///*ADD A,#*/ case 0xC6:
-		//{
-		//	herewasabreak;
-		//}
+		/*ADD A,#*/ case 0xC6:
+		{
+			unsigned char n = readRam(programCounter);
+			unsigned char &regA = regs[REG_A];
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+
+			if ((int)(regA + n) > 255)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			if (((regA & 0x0F) + (n & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			regA += n;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			programCounter++;
+
+			return 8;
+		}
 
 
 
@@ -801,10 +822,25 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
-		///*OR #*/ case 0xF6:
-		//{
-		//	herewasabreak;
-		//}
+		/*OR #*/ case 0xF6:
+		{
+			unsigned char n = readRam(programCounter);
+			unsigned char &regA = regs[REG_A];
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+
+			regA |= n;
+
+			if(regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			programCounter++;
+
+			return 8;
+		}
 
 
 		/*XOR r*/
@@ -1102,17 +1138,84 @@ int executeOpcode(unsigned char opcode)
 
 					return 8;
 				}
+				
+				/*RES b, (HL)*/
+				case 0x86:
+				{
+					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+					unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char val = readRam(dst);
+
+					resetBit(&val, bitNumber);					
+					writeRam(dst, val);
+
+					return 16;
+				}
 
 				/*SLA r*/
 				case 0x27: case 0x20: case 0x21: case 0x22: case 0x23: case 0x24: case 0x25:
 				{
+					unsigned char &paramReg = regs[cbOpcode & 0x7];
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
+
+					if (paramReg & 0x80)
+						setBit(&regs[FLAGS], C_FLAG);
+
+					paramReg <<= 1;
+
+					if(paramReg == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
 
 					return 8;
 				}
+
+				/*BIT b, (HL)*/
+				/*These cases and the next switch ARE NOT TO BE SWITCHED IN ORDER*/
+				case 0x46: case 0x4E: case 0x56: case 0x5E: case 0x66: case 0x6E: case 0x76: case 0x7E:
+				{
+					unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+					unsigned char val = readRam(dst);
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					setBit(&regs[FLAGS], H_FLAG);
+
+					//if the targetet bit is NOT set, then SET the Z flag, else it was already REset above
+					if (!isBitSet(&val, bitNumber))
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					return 8;
+				}
+
 				default:
 				{
-					std::cout << "0xCB Opcode: " << std::hex << (unsigned char)cbOpcode << " not yet implemented.";
+					/*BIT b, r*/
+					switch (cbOpcode & 0x40)
+					{
+						case 0x40:
+						{
+							unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+							unsigned char *paramReg = &regs[cbOpcode & 0x07];
+
+							resetBit(&regs[FLAGS], Z_FLAG);
+							resetBit(&regs[FLAGS], N_FLAG);
+							setBit(&regs[FLAGS], H_FLAG);
+
+							//if the targetet bit is NOT set, then SET the Z flag, else it was already reset above
+							if (!isBitSet(paramReg, bitNumber))
+								setBit(&regs[FLAGS], Z_FLAG);
+
 					std::cout.flush();
+							return 8;
+						}
+					}
+					std::cout << "0xCB Opcode: " << std::hex << (unsigned short)cbOpcode << " not yet implemented.";
 					return 0;
 				}
 			}
