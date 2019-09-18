@@ -43,7 +43,10 @@ void setupScreen()
 	Uint32 format = 0;
 
 	if (SDL_QueryTexture(texture, &format, NULL, NULL, NULL))
+	{
 		std::cout << "SDL_QueryTexture failed. Error: " << SDL_GetError();
+		return;
+	}
 }
 
 void drawToScreen()
@@ -58,25 +61,23 @@ void drawToScreen()
 	if (SDL_LockTexture(texture, NULL,(void**) &pixels, &pitch))
 		std::cout << "SDL_LockTexture failed. Error: " << SDL_GetError();
 
-	Uint32 red = 0, green = 0, blue = 0, alpha = 0;
+	Uint32 red = 0, green = 0, blue = 0, alpha = 0xFF;
 
 	for (int x = 0; x < 160; x++)
 	{
 		for (int y = 0; y < 144; y++)
 		{
-			if (screenData[x][y][0])
-			{
+
 				red = screenData[x][y][0];
 				green = screenData[x][y][1];
 				blue = screenData[x][y][2];
 				int a = y * 160 + x;
 				pixels[y * 160 + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
-			}
+			
 		}
 	}
 
 	SDL_UnlockTexture(texture);
-
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
@@ -128,7 +129,8 @@ void renderSprites()
 {
 	unsigned char lcdcControl = readRam(LCDC_CTRL);
 	bool use8x16 = false;
-	if (lcdcControl & 0x02)
+
+	if (isBitSet(&lcdcControl,2))
 		use8x16 = true;
 
 	for (int sprite = 0; sprite < 40; sprite++)
@@ -139,8 +141,8 @@ void renderSprites()
 		unsigned char spriteLocation = readRam(0xFE00 + index + 2);
 		unsigned char attributes = readRam(0xFE00 + index + 3);
 
-		bool yFlip = (attributes & 0x40) ? true : false;
-		bool xFlip = (attributes & 0x20) ? true : false;
+		bool yFlip = isBitSet(&attributes, 6);
+		bool xFlip = isBitSet(&attributes, 5);
 
 		int ly = readRam(LCDC_LY);
 
@@ -148,7 +150,7 @@ void renderSprites()
 		if (use8x16)
 			ySize = 16;
 
-		if ((ly >= yPos) && ly < (yPos + ySize))
+		if ((ly >= yPos) && (ly < (yPos + ySize)))
 		{
 			int line = ly - yPos;
 
@@ -160,7 +162,7 @@ void renderSprites()
 			}
 
 			line *= 2;
-			unsigned short dataAddress = (0x8000 + (spriteLocation * 16) + line);
+			unsigned short dataAddress = (0x8000 + (spriteLocation * 16)) + line;
 			unsigned char data1 = readRam(dataAddress);
 			unsigned char data2 = readRam(dataAddress + 1);
 
@@ -178,52 +180,55 @@ void renderSprites()
 
 				// combine data 2 and data 1 to get the colour id for this pixel
 				// in the tile
-				int dotData = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+				int dotData = isBitSet(&data2, colourBit) ? 1 : 0;
 				dotData <<= 1;
-				dotData |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
+			    dotData |= (isBitSet(&data1, colourBit) ? 1 : 0);
 
-				unsigned short paletteAddress = (attributes & 0x08) ? 0xFF49 : 0xFF48;
 
-				//lets get the shade from the palette at 0xFF47
-				unsigned char palette = readRam(paletteAddress);
-				int shade;
+				unsigned short paletteAddress = isBitSet(&attributes, 4) ? 0xFF49 : 0xFF48;
+				int col = getColour(dotData, paletteAddress);
 
-				//replaces below switch
-				shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
-				shade <<= 1;
-				shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
+
+				if (col == 0)
+					continue; 
+
+
+				////lets get the shade from the palette at 0xFF47
+				//unsigned char palette = readRam(paletteAddress);
+				//int shade;
+
+				//shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
+				//shade <<= 1;
+				//shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
 
 				int red = 0;
 				int green = 0;
 				int blue = 0;
 
 				// setup the RGB values
-				switch (shade)
+				switch (col)
 				{
 					case 0: red = 255;  green = 255; blue = 255;   break;
 					case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
 					case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-					case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 				}
 
 				int xPix = 0 - tilePixel;
 				xPix += 7;
 				int pixel = xPos + xPix;
 
-				int ly = readRam(LCDC_LY);
 
 				// safety check to make sure what im about
 				// to set is int the 160x144 bounds
 				if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
 				{
-					//skip this cycle of the loop
+					continue;
 				}
-				else
-				{
+
 					screenData[pixel][ly][0] = red;
 					screenData[pixel][ly][1] = green;
 					screenData[pixel][ly][2] = blue;
-				}
+				
 
 			}
 		}
@@ -248,14 +253,14 @@ void renderTiles()
 
 
 	//window enabled?
-	if (lcdcControl & 0x20)
+	if (isBitSet(&lcdcControl, 5))
 	{
 		if (windowY <= readRam(LCDC_LY))
 			useWindow = true;
 
 	}
 
-	if (lcdcControl & 0x10)
+	if (isBitSet(&lcdcControl, 4))
 	{
 		tileData = 0x8000;
 	}
@@ -267,7 +272,7 @@ void renderTiles()
 
 	if (!useWindow)
 	{
-		if (lcdcControl & 0x08)
+		if (isBitSet(&lcdcControl, 3))
 			bgMemory = 0x9C00;
 		else
 			bgMemory = 0x9800;
@@ -275,7 +280,7 @@ void renderTiles()
 	}
 	else
 	{
-		if (lcdcControl & 0x40)
+		if (isBitSet(&lcdcControl, 6))
 			bgMemory = 0x9C00;
 		else
 			bgMemory = 0x9800;
@@ -311,7 +316,7 @@ void renderTiles()
 		if (unsign)
 			tileNum = (unsigned char)readRam(tileAddress);
 		else
-			tileNum = (char)readRam(tileAddress);
+			tileNum = (signed char)readRam(tileAddress);
 
 		unsigned short tileLocation = tileData;
 
@@ -334,36 +339,25 @@ void renderTiles()
 		// bits, however, go from right to left (from low number to high number)
 		// so if you want the bit at xPos 0 you need bit number 7
 		int colourBit = xPos % 8;
-		/*colourBit -= 7;
-		colourBit *= -1;*/
 		colourBit = 7 - colourBit;
 
 		// combine data 2 and data 1 to get the colour id for this pixel
 		// in the tile
-		int pixelColorId = (data2 & (1 << (colourBit - 1)) ? 1 : 0);
+		int pixelColorId = isBitSet(&data2, colourBit) ? 1 : 0;
 		pixelColorId <<= 1;
-		pixelColorId |= (data1 & (1 << (colourBit - 1)) ? 1 : 0);
+		pixelColorId |= (isBitSet(&data1, colourBit) ? 1 : 0);
 
-		//lets get the shade from the palette at 0xFF47
-		unsigned char palette = readRam(0xFF47);
-		int shade;
-
-		//get the shade according to palette
-		shade = (palette & (1 << (2 * pixelColorId + 1))) ? 1 : 0;
-		shade <<= 1;
-		shade |= (palette & (1 << (2 * pixelColorId))) ? 1 : 0;
-
+		int col = getColour(pixelColorId, 0xFF47);
 		int red = 0;
 		int green = 0;
 		int blue = 0;
 
 		// setup the RGB values
-		switch (shade)
+		switch (col)
 		{
 			case 0: red = 255;  green = 255; blue = 255; break;
 			case 1: red = 0xCC; green = 0xCC; blue = 0xCC; break;
 			case 2: red = 0x77; green = 0x77; blue = 0x77; break;
-			case 3: red = 0x00; green = 0x00; blue = 0x00; break;
 		}
 
 		int ly = readRam(LCDC_LY);
@@ -372,14 +366,12 @@ void renderTiles()
 		// to set is int the 160x144 bounds
 		if ((ly < 0) || (ly > 143) || (pixel < 0) || (pixel > 159))
 		{
-			//skip this cycle of the loop
+			continue;
 		}
-		else
-		{
 			screenData[pixel][ly][0] = red;
 			screenData[pixel][ly][1] = green;
 			screenData[pixel][ly][2] = blue;
-		}
+		
 	}
 }
 
@@ -475,3 +467,36 @@ bool isLcdEnabled()
 	return isBitSet(&lcdcCtrl, 0x7);
 }
 
+int getColour(unsigned char colourNum, unsigned short address)
+{
+	int res = 0;
+	unsigned char palette = readRam(address);
+	int hi = 0;
+	int lo = 0;
+
+	// which bits of the colour palette does the colour id map to?
+	switch (colourNum)
+	{
+		case 0: hi = 1; lo = 0; break;
+		case 1: hi = 3; lo = 2; break;
+		case 2: hi = 5; lo = 4; break;
+		case 3: hi = 7; lo = 6; break;
+	}
+
+	// use the palette to get the colour
+	int colour = 0;
+	colour = isBitSet(&palette, hi) ? 1 : 0;
+	colour <<= 1;
+	colour |= isBitSet(&palette, lo) ? 1 : 0;
+
+	// convert the game colour to emulator colour
+	switch (colour)
+	{
+		case 0: res = 0; break;
+		case 1: res = 1; break;
+		case 2: res = 2; break;
+		case 3: res = 3; break;
+	}
+
+	return res;
+}

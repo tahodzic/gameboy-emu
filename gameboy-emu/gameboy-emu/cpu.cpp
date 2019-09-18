@@ -1193,6 +1193,27 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*SRL r*/
+				case 0x3F: case 0x38: case 0x39: case 0x3A: case 0x3B: case 0x3C: case 0x3D:
+				{
+					unsigned char &paramReg = regs[cbOpcode & 0x7];
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
+
+					if (paramReg & 0x1)
+						setBit(&regs[FLAGS], C_FLAG);
+
+					paramReg >>= 1;
+
+					if(paramReg == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					return 8;
+				}
+
 				default:
 				{
 					/*BIT b, r*/
@@ -1215,7 +1236,7 @@ int executeOpcode(unsigned char opcode)
 							return 8;
 						}
 					}
-					std::cout << "0xCB Opcode: " << std::hex << (unsigned short)cbOpcode << " not yet implemented.";
+					std::cout << "0xCB Opcode: " << std::hex << +cbOpcode << " not yet implemented.";
 					return 0;
 				}
 			}
@@ -1286,10 +1307,30 @@ int executeOpcode(unsigned char opcode)
 			return 4;
 		}
 
-		///*RLCA*/ case 0x07:
-		//{
-		//	herewasabreak;
-		//}
+		/*RLCA*/ case 0x07:
+		{
+			unsigned char &regA = regs[REG_A];
+			unsigned tmp = regA;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+
+			regA <<= 1;
+
+			if (tmp & 0x80)
+			{
+				setBit(&regs[FLAGS], C_FLAG);
+				setBit(&regA, 1);
+			}
+
+			if(regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+
+			return 4;
+		}
 
 		///*RLA*/ case 0x17:
 		//{
@@ -1441,38 +1482,7 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*SLA A*/ case 0xCB27:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA B*/ case 0xCB20:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA C*/ case 0xCB21:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA D*/ case 0xCB22:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA E*/ case 0xCB23:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA H*/ case 0xCB24:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA L*/ case 0xCB25:
-		//{
-		//	herewasabreak;
-		//}
-		///*SLA (HL)*/ case 0xCB26:
-		//{
-		//	herewasabreak;
-		//}
+
 
 		///*SRA A*/ case 0xCB2F:
 		//{
@@ -1507,72 +1517,14 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*SRL A*/ case 0xCB3F:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL B*/ case 0xCB38:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL C*/ case 0xCB39:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL D*/ case 0xCB3A:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL E*/ case 0xCB3B:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL H*/ case 0xCB3C:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRL L*/ case 0xCB3D:
-		//{
-		//	herewasabreak;
-		//}
+
 		///*SRL (HL)*/ case 0xCB3E:
 		//{
 		//	herewasabreak;
 		//}
 
 
-		///*BIT b,A*/ case 0xCB47:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,B*/ case 0xCB40:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,C*/ case 0xCB41:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,D*/ case 0xCB42:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,E*/ case 0xCB43:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,H*/ case 0xCB44:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,L*/ case 0xCB45:
-		//{
-		//	herewasabreak;
-		//}
-		///*BIT b,(HL)*/ case 0xCB46:
-		//{
-		//	herewasabreak;
-		//}
+
 
 
 		///*SET b,A*/ case 0xCBC7:
@@ -1604,14 +1556,6 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 		///*SET b,(HL)*/ case 0xCBC6:
-		//{
-		//	herewasabreak;
-		//}
-
-		
-
-
-		///*RES b,(HL)*/ case 0xCB86:
 		//{
 		//	herewasabreak;
 		//}
