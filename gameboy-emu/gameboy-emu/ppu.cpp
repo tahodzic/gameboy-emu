@@ -58,7 +58,7 @@ void drawToScreen()
 	/*Pitch = row * size of pixel in bytes  (row = number of pixels per row)    */
 	int pitch = 4 * 160;
 
-	if (SDL_LockTexture(texture, NULL,(void**) &pixels, &pitch))
+	if (SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch))
 		std::cout << "SDL_LockTexture failed. Error: " << SDL_GetError();
 
 	Uint32 red = 0, green = 0, blue = 0, alpha = 0xFF;
@@ -68,12 +68,12 @@ void drawToScreen()
 		for (int y = 0; y < 144; y++)
 		{
 
-				red = screenData[x][y][0];
-				green = screenData[x][y][1];
-				blue = screenData[x][y][2];
-				int a = y * 160 + x;
-				pixels[y * 160 + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
-			
+			red = screenData[x][y][0];
+			green = screenData[x][y][1];
+			blue = screenData[x][y][2];
+			int a = y * 160 + x;
+			pixels[y * 160 + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
+
 		}
 	}
 
@@ -113,7 +113,7 @@ void updateGraphics(int cycles)
 		}
 	}
 
-	
+
 }
 
 void drawScanLine()
@@ -130,7 +130,7 @@ void renderSprites()
 	unsigned char lcdcControl = readRam(LCDC_CTRL);
 	bool use8x16 = false;
 
-	if (isBitSet(&lcdcControl,2))
+	if (isBitSet(&lcdcControl, 2))
 		use8x16 = true;
 
 	for (int sprite = 0; sprite < 40; sprite++)
@@ -182,24 +182,22 @@ void renderSprites()
 				// in the tile
 				int dotData = isBitSet(&data2, colourBit) ? 1 : 0;
 				dotData <<= 1;
-			    dotData |= (isBitSet(&data1, colourBit) ? 1 : 0);
+				dotData |= (isBitSet(&data1, colourBit) ? 1 : 0);
 
 
 				unsigned short paletteAddress = isBitSet(&attributes, 4) ? 0xFF49 : 0xFF48;
-				int col = getColour(dotData, paletteAddress);
+				int col = 0;
+				unsigned char palette = readRam(paletteAddress);
 
+				////lets get the color from the palette at 0xFF47
+				col = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
+				col <<= 1;
+				col |= (palette & (1 << (2 * dotData))) ? 1 : 0;
 
 				if (col == 0)
-					continue; 
+					continue;
 
 
-				////lets get the shade from the palette at 0xFF47
-				//unsigned char palette = readRam(paletteAddress);
-				//int shade;
-
-				//shade = (palette & (1 << (2 * dotData + 1))) ? 1 : 0;
-				//shade <<= 1;
-				//shade |= (palette & (1 << (2 * dotData))) ? 1 : 0;
 
 				int red = 0;
 				int green = 0;
@@ -225,10 +223,10 @@ void renderSprites()
 					continue;
 				}
 
-					screenData[pixel][ly][0] = red;
-					screenData[pixel][ly][1] = green;
-					screenData[pixel][ly][2] = blue;
-				
+				screenData[pixel][ly][0] = red;
+				screenData[pixel][ly][1] = green;
+				screenData[pixel][ly][2] = blue;
+
 
 			}
 		}
@@ -347,7 +345,13 @@ void renderTiles()
 		pixelColorId <<= 1;
 		pixelColorId |= (isBitSet(&data1, colourBit) ? 1 : 0);
 
-		int col = getColour(pixelColorId, 0xFF47);
+		////lets get the color from the palette at 0xFF47
+		unsigned char palette = readRam(0xFF47);
+		int col = 0;
+		col = (palette & (1 << (2 * pixelColorId + 1))) ? 1 : 0;
+		col <<= 1;
+		col |= (palette & (1 << (2 * pixelColorId))) ? 1 : 0;
+
 		int red = 0;
 		int green = 0;
 		int blue = 0;
@@ -368,10 +372,10 @@ void renderTiles()
 		{
 			continue;
 		}
-			screenData[pixel][ly][0] = red;
-			screenData[pixel][ly][1] = green;
-			screenData[pixel][ly][2] = blue;
-		
+
+		screenData[pixel][ly][0] = red;
+		screenData[pixel][ly][1] = green;
+		screenData[pixel][ly][2] = blue;
 	}
 }
 
@@ -467,36 +471,3 @@ bool isLcdEnabled()
 	return isBitSet(&lcdcCtrl, 0x7);
 }
 
-int getColour(unsigned char colourNum, unsigned short address)
-{
-	int res = 0;
-	unsigned char palette = readRam(address);
-	int hi = 0;
-	int lo = 0;
-
-	// which bits of the colour palette does the colour id map to?
-	switch (colourNum)
-	{
-		case 0: hi = 1; lo = 0; break;
-		case 1: hi = 3; lo = 2; break;
-		case 2: hi = 5; lo = 4; break;
-		case 3: hi = 7; lo = 6; break;
-	}
-
-	// use the palette to get the colour
-	int colour = 0;
-	colour = isBitSet(&palette, hi) ? 1 : 0;
-	colour <<= 1;
-	colour |= isBitSet(&palette, lo) ? 1 : 0;
-
-	// convert the game colour to emulator colour
-	switch (colour)
-	{
-		case 0: res = 0; break;
-		case 1: res = 1; break;
-		case 2: res = 2; break;
-		case 3: res = 3; break;
-	}
-
-	return res;
-}
