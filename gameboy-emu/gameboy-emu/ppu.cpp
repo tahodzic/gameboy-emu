@@ -5,8 +5,6 @@
 #include "SDL.h"
 #include <iostream>
 
-/*Extern indicates that screenData was defined in another file
-and that we want to use it here*/
 unsigned char screenData[160][144][3];
 extern int cyclesScanLine;
 
@@ -39,6 +37,7 @@ void setupScreen()
 		SDL_TEXTUREACCESS_STREAMING,
 		160,
 		144);
+
 	/*Format will be filled with SDL_QueryTexture (or just hard copy [though not recommended] the format from SDL_CreateTexture above*/
 	Uint32 format = 0;
 
