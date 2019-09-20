@@ -36,6 +36,13 @@ unsigned char regs[8];
 unsigned char ram[65536];
 int countCycles;
 
+/*Memory Bank Controller MBC*/
+bool mbc1 = false;
+bool mbc2 = false;
+unsigned char cartridgeContent[0x200000];
+unsigned char currentReadOnlyMemoryBank;
+unsigned char ramBanks[0x8000];
+unsigned char currentRamBank;
 
 /*Debug purposes*/
 int debugCount = 0;
@@ -96,10 +103,44 @@ void initialize()
 	ram[0xFF4A] = 0x00;
 	ram[0xFF4B] = 0x00;
 	ram[0xFFFF] = 0x00;
+
+	/*MBC*/
+	currentReadOnlyMemoryBank = 1;
+	currentRamBank = 0;
+	memset(&ramBanks, 0, sizeof(ramBanks));
+
+	unsigned char typeOfCartridge;
+	typeOfCartridge = readRam(0x147);
+	switch (typeOfCartridge)
+	{
+		case 0:
+		{
+			currentReadOnlyMemoryBank = 0;
+			break;
+		}
+		case 1: case 2: case 3:
+		{
+			break;
+		}
+	}
 }
 
 unsigned char readRam(unsigned short address)
 {
+	//are we reading from the ready only memory ROM?
+	if ((address >= 0x4000) && (address <= 0x7FFF))
+	{
+		unsigned short newAddress = address - 0x4000;
+		return cartridgeContent[newAddress + (currentReadOnlyMemoryBank * 0x4000)];
+
+	}
+	//are we reading from random access memory RAM?
+	else if ((address >= 0xA000) && (address <= 0xBFFF))
+	{
+		unsigned short newAddress = address - 0xA000;
+		return ramBanks[newAddress + (currentRamBank * 0x2000)];
+	}
+
 	if (address == 0xFF00)
 	{
 		return getJoypadState();
@@ -868,6 +909,7 @@ int executeOpcode(unsigned char opcode)
 		//{
 		//	herewasabreak;
 		//}
+
 		///*XOR * */ case 0xEE:
 		//{
 		//	herewasabreak;
@@ -1232,7 +1274,6 @@ int executeOpcode(unsigned char opcode)
 							if (!isBitSet(paramReg, bitNumber))
 								setBit(&regs[FLAGS], Z_FLAG);
 
-					std::cout.flush();
 							return 8;
 						}
 					}

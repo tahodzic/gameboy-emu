@@ -20,12 +20,10 @@ int main()
 
 
 	while (1) {
-		int i = -1;
 		while (countCycles < MAX_CYCLES_PER_SECOND)
 		{
 			checkInput();
 			int cycles = executeOpcode(fetchOpcode());
-			i++;
 			countCycles += cycles;
 			updateGraphics(cycles);
 			checkInterruptRequests();

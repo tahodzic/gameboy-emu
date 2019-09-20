@@ -5,7 +5,7 @@
 #include "SDL.h"
 #include <iostream>
 
-unsigned char screenData[160][144][3];
+unsigned char screenData[GB_SCREEN_X][GB_SCREEN_Y][3];
 extern int cyclesScanLine;
 
 SDL_Window *mainWindow = NULL;
@@ -20,8 +20,8 @@ void setupScreen()
 	mainWindow = SDL_CreateWindow("Donai Yanen GameBoy Emulator",
 		SDL_WINDOWPOS_CENTERED,
 		SDL_WINDOWPOS_CENTERED,
-		160, 144,
-		SDL_WINDOW_SHOWN
+		GB_SCREEN_X, GB_SCREEN_Y,
+		SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE
 	);
 
 	//Renderer
@@ -35,8 +35,8 @@ void setupScreen()
 	texture = SDL_CreateTexture(renderer,
 		SDL_PIXELFORMAT_ARGB8888,
 		SDL_TEXTUREACCESS_STREAMING,
-		160,
-		144);
+		GB_SCREEN_X, 
+		GB_SCREEN_Y);
 
 	/*Format will be filled with SDL_QueryTexture (or just hard copy [though not recommended] the format from SDL_CreateTexture above*/
 	Uint32 format = 0;
@@ -55,23 +55,23 @@ void drawToScreen()
 	Later with SDL_LockTexture, this pointer will be assigned the starting address of the first pixel of the texture.*/
 	Uint32* pixels = nullptr;
 	/*Pitch = row * size of pixel in bytes  (row = number of pixels per row)    */
-	int pitch = 4 * 160;
+	int pitch = 4 * GB_SCREEN_X;
 
 	if (SDL_LockTexture(texture, NULL, (void**)&pixels, &pitch))
 		std::cout << "SDL_LockTexture failed. Error: " << SDL_GetError();
 
 	Uint32 red = 0, green = 0, blue = 0, alpha = 0xFF;
 
-	for (int x = 0; x < 160; x++)
+	for (int x = 0; x < GB_SCREEN_X; x++)
 	{
-		for (int y = 0; y < 144; y++)
+		for (int y = 0; y < GB_SCREEN_Y; y++)
 		{
 
 			red = screenData[x][y][0];
 			green = screenData[x][y][1];
 			blue = screenData[x][y][2];
-			int a = y * 160 + x;
-			pixels[y * 160 + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
+			int a = y * GB_SCREEN_X + x;
+			pixels[y * GB_SCREEN_X + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
 
 		}
 	}
@@ -101,10 +101,10 @@ void updateGraphics(int cycles)
 
 			cyclesScanLine = CYCLES_PER_SCAN_LINE;
 
-			if (currentLine < 144)
+			if (currentLine < GB_SCREEN_Y)
 				drawScanLine();
 
-			else if (currentLine == 144)
+			else if (currentLine == GB_SCREEN_Y)
 				requestInterrupt(VERTICAL_BLANKING);
 
 			else if (currentLine > 153)
@@ -296,7 +296,7 @@ void renderTiles()
 
 
 
-	for (int pixel = 0; pixel < 160; pixel++)
+	for (int pixel = 0; pixel < GB_SCREEN_X; pixel++)
 	{
 		unsigned char xPos = pixel + scrollX;
 
@@ -404,7 +404,7 @@ void setLcdStatus()
 	bool requestInt = 0;
 
 	//Mode 1: over 144, so go into vblank mode
-	if (currentLine > 144)
+	if (currentLine > GB_SCREEN_Y)
 	{
 		modeToSet = 0x01;
 		setBit(&status, 0);
