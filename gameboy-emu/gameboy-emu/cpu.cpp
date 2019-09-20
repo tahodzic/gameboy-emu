@@ -39,6 +39,8 @@ int countCycles;
 /*Memory Bank Controller MBC*/
 bool mbc1 = false;
 bool mbc2 = false;
+bool enableRam = false;
+bool romBanking = false;
 unsigned char cartridgeContent[0x200000];
 unsigned char currentReadOnlyMemoryBank;
 unsigned char ramBanks[0x8000];
@@ -113,13 +115,14 @@ void initialize()
 	typeOfCartridge = readRam(0x147);
 	switch (typeOfCartridge)
 	{
-		case 0:
-		{
-			currentReadOnlyMemoryBank = 0;
-			break;
-		}
 		case 1: case 2: case 3:
 		{
+			mbc1 = true;
+			break;
+		}
+		case 5: case 6:
+		{
+			mbc2 = true;
 			break;
 		}
 	}
@@ -181,8 +184,118 @@ void writeRam(unsigned short address, unsigned char data)
 			ram[address] = data;
 		}
 	}
+	else if (address < 0x8000)
+	{
+		handleBanking(address, data);
+
+	}
+	else if ((address >= 0xA000) && (address < 0xC000))
+	{
+		if (enableRam)
+		{
+			unsigned short newAddress = address - 0xA000;
+			ramBanks[newAddress + (currentReadOnlyMemoryBank * 0x2000)] = data;
+		}
+	}
+
 }
 
+void handleBanking(unsigned short address, unsigned char data)
+{
+	if (address < 0x2000)
+	{
+		if (mbc1 || mbc2)
+		{
+			enableRamBank(address, data);
+		}
+	}
+	else if (address >= 0x200 && address < 0x4000)
+	{
+		if (mbc1 || mbc2)
+		{
+			changeLowRomBank(data);
+		}
+	}
+	else if (address >= 0x4000 && address < 0x6000)
+	{
+		if (mbc1)
+		{
+			if (romBanking)
+			{
+				changeHighRomBank(data);
+			}
+			else
+			{
+				changeRamBank(data);
+			}
+		}
+	}
+	else if (address >= 0x6000 && address < 0x8000)
+	{
+		if (mbc1)
+		{
+			changeModeRomRam(data);
+		}
+	}
+}
+void changeRamBank(unsigned char data)
+{
+	currentRamBank = data & 0x3;
+}
+
+void changeLowRomBank(unsigned char data)
+{
+	if (mbc2)
+	{
+		currentReadOnlyMemoryBank = data & 0xF;
+		if (currentReadOnlyMemoryBank == 0)
+			currentReadOnlyMemoryBank++;
+
+		return;
+	}
+
+	unsigned char lower5 = data & 31;
+	//turn the lower 5 bits off
+	currentReadOnlyMemoryBank &= 224;
+	currentReadOnlyMemoryBank |= lower5;
+	if (currentReadOnlyMemoryBank == 0)
+		currentReadOnlyMemoryBank++;
+
+}
+
+void changeModeRomRam(unsigned char data)
+{
+	unsigned char newData = data & 0x1;
+	romBanking = (newData == 0) ? true : false;
+	if (romBanking)
+		currentReadOnlyMemoryBank = 0;
+}
+
+void changeHighRomBank(unsigned char data)
+{
+	// turn off the upper 3 bits of the current rom
+	currentReadOnlyMemoryBank &= 31;
+
+	// turn off the lower 5 bits of the data
+	data &= 224;
+	currentReadOnlyMemoryBank |= data;
+	if (currentReadOnlyMemoryBank == 0)
+		currentReadOnlyMemoryBank++;
+}
+
+void enableRamBank(unsigned short address, unsigned char data)
+{
+	if (mbc2)
+	{
+		if (address & 0x10)
+			return;
+	}
+	unsigned char testData = data & 0xF;
+	if (testData == 0xA)
+		enableRam = true;
+	else if (testData == 0x0)
+		enableRam = false;
+}
 
 /*16 bit writes*/
 //TODO
@@ -306,13 +419,13 @@ int executeOpcode(unsigned char opcode)
 	//debugCount++;
 	//if (debugCount > 1'000'000) 
 	//{
-	//	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	//	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-	//	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-	//	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-	//	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-	//	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	//	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+		//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+		//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+		//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+		//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+		//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+		//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+		//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 	//}
 
 	if (imeFlagCount > 0)
@@ -1820,6 +1933,7 @@ int executeOpcode(unsigned char opcode)
 		default:
 		{
 			std::cout << "Following opcode needs to be implemented: " << std::hex << +opcode << std::endl;
+			std::cout.flush();
 		};
 	}
 
@@ -1855,7 +1969,7 @@ void writeRegPairValue(int pairNr, unsigned short pairValue)
 
 
 
-bool loadRom(const char *romName)
+bool loadCartridge(const char *romName)
 {
 	std::FILE* fp = fopen(romName, "rb");
 	if (!fp)
@@ -1865,9 +1979,12 @@ bool loadRom(const char *romName)
 	}
 	else
 	{
-		fread(ram, 1, 0x8000, fp);
+		fread(cartridgeContent, 1, 0x10000, fp);
+		memcpy(ram, cartridgeContent, sizeof(char)*0x8000);
 		return true;
 	}
+
+
 }
 
 void setBit(unsigned char * value, int bitNumber)

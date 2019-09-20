@@ -13,7 +13,7 @@ int main()
 
 	initialize();
 	setupScreen();
-	if (!loadRom("D:/Other/Gameboy/Game/Tetris (World).gb"))
+	if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
 		return -1;
 
 	bool quit = false;

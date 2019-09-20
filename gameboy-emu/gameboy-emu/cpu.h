@@ -40,7 +40,7 @@ AF 11
 
 
 
-bool loadRom(const char *);
+bool loadCartridge(const char *);
 void initialize();
 int fetchOpcode();
 int executeOpcode(unsigned char);
@@ -61,6 +61,13 @@ bool isBitSet(unsigned char * value, int bitNumber);
 int getRegPairNumber(unsigned short opcode);
 unsigned short readRegPairValue(int pairNr);
 void writeRegPairValue(int pairNr, unsigned short pairValue);
+void handleBanking(unsigned short address, unsigned char data);
+void enableRamBank(unsigned short address, unsigned char data);
+void changeLowRomBank(unsigned char data);
+void changeHighRomBank(unsigned char data);
+void changeRamBank(unsigned char data);
+void changeModeRomRam(unsigned char data);
+
 
 
 #endif
