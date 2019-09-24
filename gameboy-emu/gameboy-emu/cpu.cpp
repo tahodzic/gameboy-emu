@@ -18,6 +18,7 @@ Bit 2: Timer Interupt
 Bit 4: Joypad Interupt
 */
 char imeFlag = 0x00, disableImeFlag = 0x00, enableImeFlag = 0x00, imeFlagCount = 0;
+bool haltFlag = false;
 
 const unsigned char REG_A = 7;
 const unsigned char REG_B = 0;
@@ -349,38 +350,61 @@ void checkInterruptRequests()
 {
 	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 	char irEnableFlagStatus = readRam(IR_ENABLE_ADDRESS);
+
 	if (irRequestFlagStatus > 0)
 	{
-		if (imeFlag == 1)
+		if (irRequestFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
 		{
-			if (irRequestFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
+			if (irEnableFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
 			{
-				if(irEnableFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
+				haltFlag = false;
+				if (imeFlag == 1)
 					serviceInterrupt(VERTICAL_BLANKING);
 			}
-			else if (irRequestFlagStatus & LCDC == LCDC)
-			{
-				if (irEnableFlagStatus & LCDC == LCDC)
-					serviceInterrupt(LCDC);
-			}
-			else if (irRequestFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
-			{
-				if (irEnableFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
-					serviceInterrupt(TIMER_OVERFLOW);
-			}
-			else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
-			{
-				if(irEnableFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
-					serviceInterrupt(SERIAL_IO_COMPLETION);
-			}
-			else if (irRequestFlagStatus & JOYPAD == JOYPAD)
-			{
-				if(irEnableFlagStatus & JOYPAD == JOYPAD)
-					serviceInterrupt(JOYPAD);
-			}
-
 		}
-		
+		else if (irRequestFlagStatus & LCDC == LCDC)
+		{
+			if (irEnableFlagStatus & LCDC == LCDC)
+			{
+				haltFlag = false;
+				if (imeFlag == 1)
+					serviceInterrupt(LCDC);
+
+			}
+		}
+		else if (irRequestFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
+		{
+			if (irEnableFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
+			{
+				haltFlag = false;
+				if (imeFlag == 1)
+					serviceInterrupt(TIMER_OVERFLOW);
+
+			}
+		}
+		else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
+		{
+			if (irEnableFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
+			{
+				haltFlag = false;
+				if (imeFlag == 1)
+					serviceInterrupt(SERIAL_IO_COMPLETION);
+
+			}
+		}
+		else if (irRequestFlagStatus & JOYPAD == JOYPAD)
+		{
+			if (irEnableFlagStatus & JOYPAD == JOYPAD)
+			{
+				haltFlag = false;
+				if (imeFlag == 1)
+					serviceInterrupt(JOYPAD);
+
+			}
+		}
+
+
+
 	}
 }
 
@@ -419,14 +443,17 @@ int executeOpcode(unsigned char opcode)
 	//debugCount++;
 	//if (debugCount > 1'000'000) 
 	//{
-		//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-		//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-		//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-		//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-		//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-		//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-		//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
+	/*std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";*/
 	//}
+
+	if (haltFlag)
+		return 4;
 
 	if (imeFlagCount > 0)
 	{
@@ -1030,34 +1057,31 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		///*CP A*/ case 0xBF:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP B*/ case 0xB8:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP C*/ case 0xB9:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP D*/ case 0xBA:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP E*/ case 0xBB:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP H*/ case 0xBC:
-		//{
-		//	herewasabreak;
-		//}
-		///*CP L*/ case 0xBD:
-		//{
-		//	herewasabreak;
-		//}
+		/*CP r*/
+		case 0xBF: case 0xB8: case 0xB9: case 0xBA: case 0xBB: case 0xBC: case 0xBD:
+		{
+			unsigned char &paramReg = regs[opcode & 0x7];
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - paramReg;
+			unsigned char tmp = paramReg;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
+
+			if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);
+
+
+			if (res == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			if (regA < paramReg)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			return 4;
+		}
 		///*CP (HL)*/ case 0xBE:
 		//{
 		//	herewasabreak;
@@ -1430,10 +1454,12 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*HALT*/ case 0x76:
-		//{
-		//	herewasabreak;
-		//}
+		/*HALT*/ case 0x76:
+		{
+			haltFlag = true;
+			
+			return 4;
+		}
 
 		///*STOP*/ case 0x1000:
 		//{
@@ -1830,17 +1856,22 @@ int executeOpcode(unsigned char opcode)
 
 			//LSB first
 			programCounter = nLowByte << 8 | nHighByte;
-			//Increment, because the subroutine is placed after the nn
-			//programCounter++;
 
 			
 			return 12;
 		}
 
-		///*CALL NZ,nn*/ case 0xC4:
-		//{
-		//	herewasabreak;
-		//}
+		/*CALL NZ,nn*/ case 0xC4:
+		{
+			unsigned short nn = readRam(programCounter) << 8 | readRam(programCounter + 1);
+			if (isBitSet(&regs[FLAGS], Z_FLAG))
+				programCounter = nn;
+			else
+				programCounter += 2;
+
+			return 12;
+		}
+
 		///*CALL Z,nn*/ case 0xCC:
 		//{
 		//	herewasabreak;

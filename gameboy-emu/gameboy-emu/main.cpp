@@ -13,7 +13,9 @@ int main()
 
 	initialize();
 	setupScreen();
-	if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
+	//if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
+	if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
+		//if (!loadCartridge("D:/Other/Gameboy/cpu_instrs.gb"))
 		return -1;
 
 	bool quit = false;
