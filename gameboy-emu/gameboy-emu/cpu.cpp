@@ -443,13 +443,13 @@ int executeOpcode(unsigned char opcode)
 	//debugCount++;
 	//if (debugCount > 1'000'000) 
 	//{
-	/*std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
-	std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-	std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-	std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-	std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";*/
+	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
+	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
+	//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
+	//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
+	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
+	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 	//}
 
 	if (haltFlag)
@@ -711,15 +711,36 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*LD SP, HL*/ case 0xF9: {
-		//	herewasabreak;
+		/*LD SP, HL*/ case 0xF9: {
+			stackPointer = regs[REG_H] << 8;
+			stackPointer |= regs[REG_L];
 
-		//}
+			return 8;
 
-		///*LDHL SP, n*/ case 0xF8: {
-		//	herewasabreak;
+		}
 
-		//}
+		/*LD HL,SP+n*/ case 0xF8: {
+			signed char n = readRam(programCounter);
+			unsigned short res = 0;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+
+			if(((int)(stackPointer&0xFF)+ (int)n) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			if((stackPointer & 0xF + n & 0xF) > 0xF)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			res = stackPointer + n;
+			regs[REG_H] = res >> 8;
+			regs[REG_L] = res & 0xFF;
+
+			return 12;
+
+		}
 
 
 		///*LD (nn),SP*/ case 0x08: {
@@ -1818,7 +1839,6 @@ int executeOpcode(unsigned char opcode)
 		{
 			if (isBitSet(&regs[FLAGS], Z_FLAG) == false)
 			{
-				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
 			}
@@ -1828,9 +1848,8 @@ int executeOpcode(unsigned char opcode)
 		}
 		/*JR Z,* */case 0x28:
 		{
-			if (isBitSet(&regs[FLAGS], Z_FLAG) == true)
+			if (isBitSet(&regs[FLAGS], Z_FLAG))
 			{
-				//programCounter += (signed)ram[programCounter];
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
 			}
@@ -1838,14 +1857,29 @@ int executeOpcode(unsigned char opcode)
 
 			return 8; 
 		}
-		///*JR NC,**/ case 0x30:
-		//{
-		//	herewasabreak;
-		//}
-		///*JR C,* */case 0x38:
-		//{
-		//	herewasabreak;
-		//}
+		/*JR NC,**/ case 0x30:
+		{
+			if (isBitSet(&regs[FLAGS], C_FLAG) == false)
+			{
+				programCounter += (signed char)readRam(programCounter);
+				programCounter++;
+			}
+			else programCounter++;
+
+			return 8;
+
+		}
+		/*JR C,* */case 0x38:
+		{
+			if (isBitSet(&regs[FLAGS], C_FLAG))
+			{
+				programCounter += (signed char)readRam(programCounter);
+				programCounter++;
+			}
+			else programCounter++;
+
+			return 8;
+		}
 
 		/*call nn*/ case 0xCD:
 		{
