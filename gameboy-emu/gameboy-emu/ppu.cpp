@@ -387,7 +387,7 @@ void setLcdStatus()
 	{
 		cyclesScanLine = CYCLES_PER_SCAN_LINE;
 		writeRam(LCDC_LY, (unsigned char)0);
-
+		
 		//set mode to 01 (vblank mode)
 		status &= 0xFC;
 		setBit(&status, 0);

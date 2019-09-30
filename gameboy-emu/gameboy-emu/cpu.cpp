@@ -8,6 +8,7 @@
 #include <iostream>
 
 
+
 int cyclesScanLine;
 unsigned short stackPointer, programCounter;
 /*Interrupts*/
@@ -430,11 +431,13 @@ void serviceInterrupt(int interruptNumber)
 
 int fetchOpcode()
 {
-	unsigned char opcode = 0;
+	if (haltFlag)
+		return 0;
 
+	unsigned char opcode = 0;
 	opcode = readRam(programCounter);
 	programCounter++;
-	//std::cout << "Opcode: " << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << std::endl;
+	
 	return opcode;
 }
 
@@ -663,7 +666,7 @@ int executeOpcode(unsigned char opcode)
 
 			return 8;
 		}
-
+		
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
@@ -1416,6 +1419,8 @@ int executeOpcode(unsigned char opcode)
 
 				default:
 				{
+					//TODO: refactor to explicitly specify cases instead of this way. 
+					//CB FF leads to here which is wrong 
 					/*BIT b, r*/
 					switch (cbOpcode & 0x40)
 					{
