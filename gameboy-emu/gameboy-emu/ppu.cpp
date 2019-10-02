@@ -118,9 +118,9 @@ void updateGraphics(int cycles)
 void drawScanLine()
 {
 	unsigned char control = readRam(LCDC_CTRL);
-	if (control & 0x1)
+	if (isBitSet(&control, 0))
 		renderTiles();
-	if (control & 0x2)
+	if (isBitSet(&control, 1))
 		renderSprites();
 }
 

@@ -75,6 +75,16 @@ void initialize()
 	regs[REG_L] = 0x4D;
 	regs[FLAGS] = 0xB0;
 
+	/*For cpu_instr.gb*/
+	//regs[REG_A] = 0x11;
+	//regs[FLAGS] = 0x80;
+	//regs[REG_B] = 0x00;
+	//regs[REG_C] = 0x00;
+	//regs[REG_D] = 0xFF;
+	//regs[REG_E] = 0x56;
+	//regs[REG_H] = 0x00;
+	//regs[REG_L] = 0x0D;
+
 	ram[0xFF00] = 0xFF;
 	ram[0xFF05] = 0x00;
 	ram[0xFF06] = 0x00;
@@ -117,6 +127,10 @@ void initialize()
 	typeOfCartridge = readRam(0x147);
 	switch (typeOfCartridge)
 	{
+		case 0:
+		{
+			mbc1 = false;
+		}
 		case 1: case 2: case 3:
 		{
 			mbc1 = true;
@@ -126,6 +140,10 @@ void initialize()
 		{
 			mbc2 = true;
 			break;
+		}
+		default: 
+		{
+			std::cout << "Unhandled memory controller: " << std::hex << typeOfCartridge;
 		}
 	}
 }
@@ -211,7 +229,7 @@ void handleBanking(unsigned short address, unsigned char data)
 			enableRamBank(address, data);
 		}
 	}
-	else if (address >= 0x200 && address < 0x4000)
+	else if (address >= 0x2000 && address < 0x4000)
 	{
 		if (mbc1 || mbc2)
 		{
@@ -295,7 +313,7 @@ void enableRamBank(unsigned short address, unsigned char data)
 	unsigned char testData = data & 0xF;
 	if (testData == 0xA)
 		enableRam = true;
-	else if (testData == 0x0)
+	else if (testData != 0xA)
 		enableRam = false;
 }
 
@@ -443,20 +461,35 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
+	if (haltFlag)
+		return 4;
 	//debugCount++;
 	//if (debugCount > 1'000'000) 
 	//{
 	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << "\n";
+	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS];
+	//std::cout << "   Flags:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
+	//	(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
+	//	(isBitSet(&regs[FLAGS], H_FLAG) ? "H" : "-") <<
+	//	(isBitSet(&regs[FLAGS], C_FLAG) ? "C" : "-") <<
+	//	"\n";
 	//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
 	//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
 	//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
 	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
 	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 	//}
-
-	if (haltFlag)
-		return 4;
+	std::cout << "A:" << std::uppercase << std::hex << (regs[REG_A] > 0xF ? "" : "0") << +regs[REG_A];
+	std::cout << " F:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
+		(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
+		(isBitSet(&regs[FLAGS], H_FLAG) ? "H" : "-") <<
+		(isBitSet(&regs[FLAGS], C_FLAG) ? "C" : "-");
+	std::cout << " BC:" << std::nouppercase <<std::hex << (regs[REG_B] > 0xF ? "" : "0") << +regs[REG_B] << (regs[REG_C] > 0xF ? "" : "0") << +regs[REG_C];
+	std::cout << " DE:" << std::nouppercase <<std::hex << (regs[REG_D] > 0xF ? "" : "0") << +regs[REG_D] << (regs[REG_E] > 0xF ? "" : "0") << +regs[REG_E];
+	std::cout << " HL:" << std::nouppercase <<std::hex << (regs[REG_H] > 0xF ? "" : "0") << +regs[REG_H] << (regs[REG_L] > 0xF ? "" : "0") << +regs[REG_L];
+	std::cout << " SP:" << std::nouppercase << std::hex << +stackPointer;
+	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode;
+	std::cout << std::dec << " Countcycles: " << countCycles << "\n";
 
 	if (imeFlagCount > 0)
 	{
@@ -512,7 +545,7 @@ int executeOpcode(unsigned char opcode)
 			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
 			unsigned char &dst = regs[(opcode >> 3) & 0x7];
 
-	
+
 			dst = readRam(src);
 
 			return 8;
@@ -557,7 +590,7 @@ int executeOpcode(unsigned char opcode)
 			unsigned char nHighByte = readRam(programCounter);
 			unsigned char nlowByte = readRam(programCounter + 1);
 			//LSB byte first
-			unsigned short srcAddress =  nlowByte << 8 | nHighByte;
+			unsigned short srcAddress = nlowByte << 8 | nHighByte;
 
 			regs[REG_A] = readRam(srcAddress);
 
@@ -582,7 +615,7 @@ int executeOpcode(unsigned char opcode)
 		/*LD (nn),A*/ case 0xEA:
 		{
 			unsigned char nlowByte = readRam(programCounter);
-			unsigned char nHighByte = readRam(programCounter+1);
+			unsigned char nHighByte = readRam(programCounter + 1);
 			unsigned short nn = nHighByte << 8 | nlowByte;
 
 			writeRam(nn, regs[REG_A]);
@@ -609,7 +642,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*LD A,(HLD)*/
 		/*LD A,(HL-)*/
-		/*LDD A,(HL)*/ 
+		/*LDD A,(HL)*/
 		case 0x3A:
 		{
 			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
@@ -624,7 +657,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*LD (HLD),A */
 		/*LD (HL-),A */
-		/*LDD (HL),A*/ 
+		/*LDD (HL),A*/
 		case 0x32:
 		{
 			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
@@ -641,8 +674,8 @@ int executeOpcode(unsigned char opcode)
 		/*LD A,(HL+) */
 		/*LDI A,(HL)*/
 		case 0x2A:
-		{		
-			
+		{
+
 			unsigned short srcAddress = regs[REG_H] << 8 | regs[REG_L];
 			unsigned char value = readRam(srcAddress);
 			regs[REG_A] = value;
@@ -666,7 +699,7 @@ int executeOpcode(unsigned char opcode)
 
 			return 8;
 		}
-		
+
 		/*LDH (n),A*/
 		/*LD ($FF00+n),A*/ case 0xE0:
 		{
@@ -683,7 +716,7 @@ int executeOpcode(unsigned char opcode)
 			//int n = ram[programCounter] & 0xFF;
 			unsigned char n = readRam(programCounter);
 			//registers.A = ram[0xFF00 + n] & 0xFF;
-			regs[REG_A] = readRam(0xFF00+n);
+			regs[REG_A] = readRam(0xFF00 + n);
 			///registers.A = 0x3E;
 			programCounter++;
 			return 12;
@@ -701,7 +734,7 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 
-		/*LD SP,nn*/ case 0x31: 
+		/*LD SP,nn*/ case 0x31:
 		{
 			unsigned char nlowByte = readRam(programCounter);
 			unsigned char nHighByte = readRam(programCounter + 1);
@@ -713,7 +746,7 @@ int executeOpcode(unsigned char opcode)
 			return 12;
 		}
 
-
+		
 		/*LD SP, HL*/ case 0xF9: {
 			stackPointer = regs[REG_H] << 8;
 			stackPointer |= regs[REG_L];
@@ -731,10 +764,10 @@ int executeOpcode(unsigned char opcode)
 			resetBit(&regs[FLAGS], C_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
 
-			if(((int)(stackPointer&0xFF)+ (int)n) > 0xFF)
+			if (((int)(stackPointer & 0xFF) + (int)n) > 0xFF)
 				setBit(&regs[FLAGS], C_FLAG);
 
-			if((stackPointer & 0xF + n & 0xF) > 0xF)
+			if ((stackPointer & 0xF + n & 0xF) > 0xF)
 				setBit(&regs[FLAGS], H_FLAG);
 
 			res = stackPointer + n;
@@ -770,8 +803,8 @@ int executeOpcode(unsigned char opcode)
 
 			return 16;
 		}
-			   
-		/*POP AF*/ case 0xF1: 
+
+		/*POP AF*/ case 0xF1:
 		{
 			unsigned short popVal = popFromStack();
 			regs[REG_A] = (popVal & 0xFF00) >> 8;
@@ -795,13 +828,13 @@ int executeOpcode(unsigned char opcode)
 		/*ADD A, r*/ case 0x87: case 0x80: case 0x81: case 0x82: case 0x83: case 0x84: case 0x85:
 		{
 			unsigned char &paramReg = regs[opcode & 0x7];
-			unsigned char &regA = regs[REG_A]; 
+			unsigned char &regA = regs[REG_A];
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], C_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
 			resetBit(&regs[FLAGS], N_FLAG);
-			
+
 			if (((regA & 0x0F) + (paramReg & 0x0F)) > 0x0F)
 				setBit(&regs[FLAGS], H_FLAG);
 
@@ -809,15 +842,39 @@ int executeOpcode(unsigned char opcode)
 				setBit(&regs[FLAGS], C_FLAG);
 
 			regA += paramReg;
-			
+
 			if (regA == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
-		
 
-		///*ADD A,(HL)*/ case 0x86:
+
+		/*ADD A,(HL)*/ 
+		case 0x86:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+			unsigned char &regA = regs[REG_A];
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+
+			if (((regA & 0x0F) + (val & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if ((int)(regA + val) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA += val;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			return 4;
+		}
 
 		/*ADD A,#*/ case 0xC6:
 		{
@@ -846,90 +903,207 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-
+		/*ADC A, r*/
 		case 0x8F: case 0x88: case 0x89: case 0x8A: case 0x8B: case 0x8C: case 0x8D:
 		{
+			unsigned char &paramReg = regs[opcode & 0x7];
+			unsigned char &regA = regs[REG_A];
+			unsigned char carryFlag = isBitSet(&regs[FLAGS], C_FLAG) ? 1 : 0;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+
+			if (((regA & 0x0F) + (paramReg & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if ((int)(regA + paramReg) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA += paramReg + carryFlag;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
 			return 4;
 		}
 
 
-		///*ADC A,(HL)*/ case 0x8E:
-		//{
-		//	herewasabreak;
-		//}
-		///*ADC A,#*/ case 0xCE:
-		//{
-		//	herewasabreak;
-		//}
+		/*ADC A,(HL)*/ case 0x8E:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+			unsigned char &regA = regs[REG_A];
+			unsigned char carryFlag = isBitSet(&regs[FLAGS], C_FLAG) ? 1 : 0;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+
+			if (((regA & 0x0F) + (val & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if ((int)(regA + val) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA += val + carryFlag;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			return 8;
+		}
+		/*ADC A,#*/ case 0xCE:
+		{
+			unsigned char n = readRam(programCounter);
+			unsigned char &regA = regs[REG_A];
+			unsigned char carryFlag = isBitSet(&regs[FLAGS], C_FLAG) ? 1 : 0;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
+
+			if (((regA & 0x0F) + (n & 0x0F)) > 0x0F)
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if ((int)(regA + n) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA += n + carryFlag;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			programCounter++;
+
+			return 8;
+		}
+
+		/*SUB r*/
+		case 0x97: case 0x90: case 0x91: case 0x92: case 0x93: case 0x94: case 0x95:
+		{
+			unsigned char &paramReg = regs[opcode & 0x7];
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - paramReg;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
 
 
-		///*SUB A*/ case 0x97:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB B*/ case 0x90:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB C*/ case 0x91:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB D*/ case 0x92:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB E*/ case 0x93:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB H*/ case 0x94:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB L*/ case 0x95:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB (HL)*/ case 0x96:
-		//{
-		//	herewasabreak;
-		//}
-		///*SUB #*/ case 0xD6:
-		//{
-		//	herewasabreak;
-		//}
+			/*if ((((regs[REG_A]) ^ paramReg ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			if ((regA & 0xF) < (paramReg & 0xF))
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if (regA < paramReg)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA -= paramReg;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			return 4;
+		}
+ 
+		/*SUB (HL)*/ case 0x96:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - val;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
 
 
-		///*SBC A,A*/ case 0x9F:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,B*/ case 0x98:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,C*/ case 0x99:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,D*/ case 0x9A:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,E*/ case 0x9B:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,H*/ case 0x9C:
-		//{
-		//	herewasabreak;
-		//}
-		///*SBC A,L*/ case 0x9D:
-		//{
-		//	herewasabreak;
-		//}
+			//if ((((regs[REG_A]) ^ val ^ res) & 0x10) >> 4)
+			//	setBit(&regs[FLAGS], H_FLAG);
+			if ((regA & 0xF) < (val & 0xF))
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if (regs[REG_A] < val)
+				setBit(&regs[FLAGS], C_FLAG);
+			
+			regA -= val;
+
+			if(regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+
+			return 8;
+		}
+
+		/*SUB #*/ case 0xD6:
+		{
+			unsigned char n = readRam(programCounter);
+			std::cout.flush();
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - n;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
+
+
+			/*if ((((regs[REG_A]) ^ subtrahend ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			if ((regA & 0xF) < (n & 0xF))
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if (regs[REG_A] < n)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA -= n;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			programCounter++;
+
+			return 8;
+		}
+
+		/*SBC A, r*/
+		case 0x9F: case 0x98: case 0x99: case 0x9A: case 0x9B: case 0x9C: case 0x9D:
+		{
+			unsigned char &paramReg = regs[opcode & 0x7];
+			unsigned char &regA = regs[REG_A];
+			unsigned char carryFlag = isBitSet(&regs[FLAGS], C_FLAG) ? 1 : 0;
+			unsigned char subtrahend = paramReg + carryFlag;
+			unsigned char res = regA - subtrahend;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			setBit(&regs[FLAGS], N_FLAG);
+
+
+			/*if ((((regs[REG_A]) ^ subtrahend ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			if ((regA & 0xF) < (subtrahend & 0xF))
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if (regs[REG_A] < subtrahend)
+				setBit(&regs[FLAGS], C_FLAG);
+
+			regA -= subtrahend;
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+
+			
+			return 4;
+		}
 		///*SBC A,(HL)*/ case 0x9E:
 		//{
 		//	herewasabreak;
@@ -1118,10 +1292,12 @@ int executeOpcode(unsigned char opcode)
 			resetBit(&regs[FLAGS], C_FLAG);
 			setBit(&regs[FLAGS], N_FLAG);
 
-			if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
+			//if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
+			//	setBit(&regs[FLAGS], H_FLAG);
+			if((regA&0xF) < (paramReg&0xF))
 				setBit(&regs[FLAGS], H_FLAG);
 
-
+			
 			if (res == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
@@ -1130,17 +1306,51 @@ int executeOpcode(unsigned char opcode)
 
 			return 4;
 		}
-		///*CP (HL)*/ case 0xBE:
-		//{
-		//	herewasabreak;
-		//}
-		/*CP #*/ case 0xFE:
+		/*CP (HL)*/ case 0xBE:
 		{
-			//unsigned char res = registers.A - ram[programCounter];
-			unsigned char n = readRam(programCounter);
-			unsigned char res = regs[REG_A] - n;
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - val;
+
+				resetBit(&regs[FLAGS], H_FLAG);
+				resetBit(&regs[FLAGS], C_FLAG);
 
 			if (res == 0)
+			{
+				setBit(&regs[FLAGS], Z_FLAG);
+			}
+			else
+			{
+				resetBit(&regs[FLAGS], Z_FLAG);
+			}
+
+			setBit(&regs[FLAGS], N_FLAG);
+
+		/*	if ((((regs[REG_A]) ^ val ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			
+			if ((regA & 0xF) < (val & 0xF))
+				setBit(&regs[FLAGS], H_FLAG);
+
+			if (regs[REG_A] < val)
+				setBit(&regs[FLAGS], C_FLAG);
+			
+
+			programCounter++;
+
+			return 8;
+		}
+		/*CP #*/ case 0xFE:
+		{
+			unsigned char n = readRam(programCounter);
+			unsigned char &regA = regs[REG_A];
+			unsigned char res = regA - n;
+
+				resetBit(&regs[FLAGS], H_FLAG);
+				resetBit(&regs[FLAGS], C_FLAG);
+			
+				if (res == 0)
 			{
 				setBit(&regs[FLAGS],Z_FLAG);
 			}
@@ -1151,15 +1361,14 @@ int executeOpcode(unsigned char opcode)
 			
 			setBit(&regs[FLAGS],N_FLAG);
 
-			if ((((regs[REG_A]) ^ n ^ res) & 0x10) >> 4)
+			/*if ((((regs[REG_A]) ^ n ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			if ((regA & 0xF) < (n & 0xF))
 				setBit(&regs[FLAGS], H_FLAG);
-			else
-				resetBit(&regs[FLAGS], H_FLAG);
 
 			if (regs[REG_A] < n)
 				setBit(&regs[FLAGS], C_FLAG);
-			else
-				resetBit(&regs[FLAGS], C_FLAG);
+			 
 
 			programCounter++;
 
@@ -1222,8 +1431,10 @@ int executeOpcode(unsigned char opcode)
 			if (tmp - 1 == 0x0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
-			if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
-				setBit(&regs[FLAGS], H_FLAG);
+			/*if ((((paramReg) ^ (1) ^ res) & 0x10) >> 4)
+				setBit(&regs[FLAGS], H_FLAG);*/
+			if(tmp == 0)
+				setBit(&regs[FLAGS], H_FLAG); 
 
 			tmp--;
 			paramReg = tmp;
@@ -1245,7 +1456,10 @@ int executeOpcode(unsigned char opcode)
 			if (tmp - 1 == 0x0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
-			if ((((val) ^ (1) ^ res) & 0x10) >> 4)
+			//if ((((val) ^ (1) ^ res) & 0x10) >> 4)
+			//	setBit(&regs[FLAGS], H_FLAG);
+
+			if (tmp == 0)
 				setBit(&regs[FLAGS], H_FLAG);
 
 			tmp--;
@@ -1355,6 +1569,29 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*SWAP (HL)*/
+				case 0x36:
+				{
+					unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char val = readRam(src);
+					unsigned char lowNibble = val & 0x0F;
+					unsigned char highNibble = val & 0xF0;
+
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
+					resetBit(&regs[FLAGS], Z_FLAG);
+
+					val = lowNibble << 4 | highNibble >> 4;
+
+					if (val == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					writeRam(src, val);
+					
+					return 16;
+				}
+
 				/*RES b, r*/
 				case 0x87: case 0x8F: case 0x97: case 0x9F: case 0xA7: case 0xAF: case 0xB7: case 0xBF: /*RES b, A*/
 				case 0x80: case 0x88: case 0x90: case 0x98: case 0xA0: case 0xA8: case 0xB0: case 0xB8: /*RES b, B*/
@@ -1407,20 +1644,51 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
-				/*BIT b, (HL)*/
-				/*These cases and the next switch ARE NOT TO BE SWITCHED IN ORDER*/
-				case 0x46: case 0x4E: case 0x56: case 0x5E: case 0x66: case 0x6E: case 0x76: case 0x7E:
+				/*SLA (HL)*/
+				case 0x26:
 				{
-					unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
-					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
-					unsigned char val = readRam(dst);
+					unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+				
+					unsigned char val = readRam(src);
 
 					resetBit(&regs[FLAGS], Z_FLAG);
 					resetBit(&regs[FLAGS], N_FLAG);
-					setBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
 
-					//if the targetet bit is NOT set, then SET the Z flag, else it was already REset above
-					if (!isBitSet(&val, bitNumber))
+					if (val & 0x80)
+						setBit(&regs[FLAGS], C_FLAG);
+
+					val <<= 1;
+
+					if (val == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					writeRam(src, val);
+
+					return 16;
+				}
+
+				/*SRA r*/
+				case 0x2F: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D:
+				{
+					unsigned char &paramReg = regs[cbOpcode & 0x07];
+					unsigned char tmp = paramReg;
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+					resetBit(&regs[FLAGS], C_FLAG);
+
+					paramReg >>= 1;
+
+					if(isBitSet(&tmp, 0))
+						setBit(&regs[FLAGS], C_FLAG);
+
+					if(isBitSet(&tmp,7))
+						setBit(&paramReg, 7);
+
+					if(paramReg == 0)
 						setBit(&regs[FLAGS], Z_FLAG);
 
 					return 8;
@@ -1442,6 +1710,24 @@ int executeOpcode(unsigned char opcode)
 					paramReg >>= 1;
 
 					if(paramReg == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					return 8;
+				}
+
+				/*BIT b, (HL)*/
+				case 0x46: case 0x4E: case 0x56: case 0x5E: case 0x66: case 0x6E: case 0x76: case 0x7E:
+				{
+					unsigned short dst = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+					unsigned char val = readRam(dst);
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					setBit(&regs[FLAGS], H_FLAG);
+
+					//if the targetet bit is NOT set, then SET the Z flag, else it was already REset above
+					if (!isBitSet(&val, bitNumber))
 						setBit(&regs[FLAGS], Z_FLAG);
 
 					return 8;
@@ -1487,6 +1773,21 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*SET b, (HL)*/
+				case 0xC6: case 0xCE: case 0xD6: case 0xDE: case 0xE6: case 0xEE: case 0xF6: case 0xFE:
+				{
+					unsigned char bitNumber = (cbOpcode >> 3) & 0x07;
+					unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char val = readRam(src);
+
+					setBit(&val, bitNumber);
+					writeRam(src, val);
+					
+					return 16;
+				}
+
+
+
 				/*RL r*/
 				case 0x17: case 0x10: case 0x11: case 0x12: case 0x13: case 0x14: case 0x15:
 				{
@@ -1523,6 +1824,44 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
+				/*RL (HL)*/
+				case 0x16:
+				{
+					unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char val = readRam(src);
+					unsigned char tmp = val;
+
+					resetBit(&regs[FLAGS], Z_FLAG);
+					resetBit(&regs[FLAGS], N_FLAG);
+					resetBit(&regs[FLAGS], H_FLAG);
+
+					val <<= 1;
+
+					//If C Flag is set, set bit 0 of paramReg as well
+					if (isBitSet(&regs[FLAGS], C_FLAG))
+					{
+						setBit(&val, 0);
+					}
+
+					//If the most left bit of tmp ist set, set the C Flag 
+					if (isBitSet(&tmp, 7))
+					{
+						setBit(&regs[FLAGS], C_FLAG);
+					}
+					//If not, reset the C Flag
+					else
+					{
+						resetBit(&regs[FLAGS], C_FLAG);
+
+					}
+
+					if (val == 0)
+						setBit(&regs[FLAGS], Z_FLAG);
+
+					writeRam(src, val);
+
+					return 16;
+				}
 				/*RR r*/
 				case 0x1F: case 0x18: case 0x19: case 0x1A: case 0x1B: case 0x1C: case 0x1D:
 				{
@@ -1559,29 +1898,43 @@ int executeOpcode(unsigned char opcode)
 					return 8;
 				}
 
-				/*SRA r*/
-				case 0x2F: case 0x28: case 0x29: case 0x2A: case 0x2B: case 0x2C: case 0x2D:
+				/*RR (HL)*/
+				case 0x1E:
 				{
-					unsigned char &paramReg = regs[cbOpcode & 0x07];
-					unsigned char tmp = paramReg;
+					unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+					unsigned char val = readRam(src);
+					unsigned char tmp = val;
 
 					resetBit(&regs[FLAGS], Z_FLAG);
 					resetBit(&regs[FLAGS], N_FLAG);
 					resetBit(&regs[FLAGS], H_FLAG);
-					resetBit(&regs[FLAGS], C_FLAG);
 
-					paramReg >>= 1;
+					val >>= 1;
 
-					if(isBitSet(&tmp, 0))
+					//If C Flag is set, set bit 0 of paramReg as well
+					if (isBitSet(&regs[FLAGS], C_FLAG))
+					{
+						setBit(&val, 7);
+					}
+
+					//If the most left bit of tmp ist set, set the C Flag 
+					if (isBitSet(&tmp, 0))
+					{
 						setBit(&regs[FLAGS], C_FLAG);
+					}
+					//If not, reset the C Flag
+					else
+					{
+						resetBit(&regs[FLAGS], C_FLAG);
 
-					if(isBitSet(&tmp,7))
-						setBit(&paramReg, 7);
+					}
 
-					if(paramReg == 0)
+					if (val == 0)
 						setBit(&regs[FLAGS], Z_FLAG);
 
-					return 8;
+					writeRam(src, val);
+					 
+					return 16;
 				}
 
 				default:
@@ -1713,231 +2066,35 @@ int executeOpcode(unsigned char opcode)
 			return 4;
 		}
 
-		///*RRA*/ case 0x1F:
-		//{
-		//	herewasabreak;
-		//}
+		/*RRA*/ case 0x1F:
+		{
+			unsigned char &regA = regs[REG_A];
+			unsigned char tmp = regA;
 
-		///*RLC A*/ case 0xCB07:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC B*/ case 0xCB00:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC C*/ case 0xCB01:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC D*/ case 0xCB02:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC E*/ case 0xCB03:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC H*/ case 0xCB04:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC L*/ case 0xCB05:
-		//{
-		//	herewasabreak;
-		//}
-		///*RLC (HL)*/ case 0xCB06:
-		//{
-		//	herewasabreak;
-		//}
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], N_FLAG);
 
+			regA >>= 1;
 
-		///*RL A*/ case 0xCB17:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL B*/ case 0xCB10:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL C*/ case 0xCB11:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL D*/ case 0xCB12:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL E*/ case 0xCB13:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL H*/ case 0xCB14:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL L*/ case 0xCB15:
-		//{
-		//	herewasabreak;
-		//}
-		///*RL (HL)*/ case 0xCB16:
-		//{
-		//	herewasabreak;
-		//}
+			if (isBitSet(&regs[FLAGS], C_FLAG))
+				setBit(&regA, 7);
 
+			if (isBitSet(&tmp, 0))
+				setBit(&regs[FLAGS], C_FLAG);
 
+			if(regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
 
-		///*RRC A*/ case 0xCB0F:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC B*/ case 0xCB08:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC C*/ case 0xCB09:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC D*/ case 0xCB0A:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC E*/ case 0xCB0B:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC H*/ case 0xCB0C:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC L*/ case 0xCB0D:
-		//{
-		//	herewasabreak;
-		//}
-		///*RRC (HL)*/ case 0xCB0E:
-		//{
-		//	herewasabreak;
-		//}
-
-		///*RR A */case 0xCB1F:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR B */case 0xCB18:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR C */case 0xCB19:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR D */case 0xCB1A:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR E */case 0xCB1B:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR H */case 0xCB1C:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR L */case 0xCB1D:
-		//{
-		//	herewasabreak;
-		//}
-		///*RR (HL)*/case 0xCB1E:
-		//{
-		//	herewasabreak;
-		//}
-
-
-
-		///*SRA A*/ case 0xCB2F:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA B*/ case 0xCB28:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA C*/ case 0xCB29:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA D*/ case 0xCB2A:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA E*/ case 0xCB2B:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA H*/ case 0xCB2C:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA L*/ case 0xCB2D:
-		//{
-		//	herewasabreak;
-		//}
-		///*SRA (HL)*/ case 0xCB2E:
-		//{
-		//	herewasabreak;
-		//}
-
-
-		///*SRL (HL)*/ case 0xCB3E:
-		//{
-		//	herewasabreak;
-		//}
-
-
-
-
-
-		///*SET b,A*/ case 0xCBC7:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,B*/ case 0xCBC0:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,C*/ case 0xCBC1:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,D*/ case 0xCBC2:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,E*/ case 0xCBC3:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,H*/ case 0xCBC4:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,L*/ case 0xCBC5:
-		//{
-		//	herewasabreak;
-		//}
-		///*SET b,(HL)*/ case 0xCBC6:
-		//{
-		//	herewasabreak;
-		//}
-
+			return 4;
+		}
 
 		/*JP nn*/ case 0xC3:
 		{
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 			programCounter = newAddressToJumpTo;
 
-			return 12;
+			return 16;
 		}
 
 		/*JP NZ,nn*/ case 0xC2:
@@ -1945,7 +2102,10 @@ int executeOpcode(unsigned char opcode)
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 
 			if (!isBitSet(&regs[FLAGS], Z_FLAG))
+			{
 				programCounter = newAddressToJumpTo;
+				return 16;
+			}
 			else
 				programCounter += 2;
 
@@ -1957,7 +2117,10 @@ int executeOpcode(unsigned char opcode)
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 
 			if (isBitSet(&regs[FLAGS], Z_FLAG))
+			{
 				programCounter = newAddressToJumpTo;
+				return 16;
+			}
 			else
 				programCounter += 2;
 
@@ -1969,7 +2132,10 @@ int executeOpcode(unsigned char opcode)
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 
 			if (!isBitSet(&regs[FLAGS], C_FLAG))
+			{
 				programCounter = newAddressToJumpTo;
+				return 16;
+			}
 			else
 				programCounter += 2;
 
@@ -1981,7 +2147,10 @@ int executeOpcode(unsigned char opcode)
 			int newAddressToJumpTo = ((readRam(programCounter + 1) << 8) + readRam(programCounter));
 
 			if (isBitSet(&regs[FLAGS], C_FLAG))
+			{
 				programCounter = newAddressToJumpTo;
+				return 16;
+			}
 			else
 				programCounter += 2;
 
@@ -2011,6 +2180,7 @@ int executeOpcode(unsigned char opcode)
 			{
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
+				return 12;
 			}
 			else programCounter++;
 
@@ -2022,6 +2192,7 @@ int executeOpcode(unsigned char opcode)
 			{
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
+				return 12;
 			}
 			else programCounter++;
 
@@ -2033,6 +2204,7 @@ int executeOpcode(unsigned char opcode)
 			{
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
+				return 12;
 			}
 			else programCounter++;
 
@@ -2045,6 +2217,7 @@ int executeOpcode(unsigned char opcode)
 			{
 				programCounter += (signed char)readRam(programCounter);
 				programCounter++;
+				return 12;
 			}
 			else programCounter++;
 
@@ -2062,14 +2235,17 @@ int executeOpcode(unsigned char opcode)
 			programCounter = nLowByte << 8 | nHighByte;
 
 			
-			return 12;
+			return 24;
 		}
 
 		/*CALL NZ,nn*/ case 0xC4:
 		{
 			unsigned short nn = readRam(programCounter) << 8 | readRam(programCounter + 1);
 			if (isBitSet(&regs[FLAGS], Z_FLAG))
+			{
 				programCounter = nn;
+				return 24;
+			}
 			else
 				programCounter += 2;
 
@@ -2077,7 +2253,7 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		///*CALL Z,nn*/ case 0xCC:
-		//{
+		//{24/12
 		//	herewasabreak;
 		//}
 		///*CALL NC,nn*/ case 0xD4:
@@ -2136,26 +2312,44 @@ int executeOpcode(unsigned char opcode)
 		/*RET NZ*/ case 0xC0:
 		{
 			if (isBitSet(&regs[FLAGS], Z_FLAG) == false)
+			{
 				programCounter = popFromStack();
+				return 20;
+			}
 			
 			return 8;
 		}
 		/*RET Z*/ case 0xC8:
 		{
 
-			if (isBitSet(&regs[FLAGS], Z_FLAG) == true)
+			if (isBitSet(&regs[FLAGS], Z_FLAG))
+			{
 				programCounter = popFromStack();
+				return 20;
+			}
 
 			return 8;
 		}
-		///*RET NC */case 0xD0:
-		//{
-		//	herewasabreak;
-		//}
-		///*RET C*/ case 0xD8:
-		//{
-		//	herewasabreak;
-		//}
+		/*RET NC */case 0xD0:
+		{
+			if (isBitSet(&regs[FLAGS], C_FLAG) == false)
+			{
+				programCounter = popFromStack();
+				return 20;
+			}
+
+			return 8;
+		}
+		/*RET C*/ case 0xD8:
+		{
+			if (isBitSet(&regs[FLAGS], C_FLAG))
+			{
+				programCounter = popFromStack();
+				return 20;
+			}
+
+			return 8;
+		}
 
 		/*RETI -/-*/ case 0xD9:
 		{

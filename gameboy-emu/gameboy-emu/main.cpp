@@ -4,19 +4,19 @@
 #include "ppu.h"
 #include "input.h"
 #include <iostream>
-
+#include <Windows.h>
 extern int countCycles;
 
 
 int main()
 {
 
-	initialize();
-	setupScreen();
 	//if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
 	if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
 		//if (!loadCartridge("D:/Other/Gameboy/cpu_instrs.gb"))
 		return -1;
+	initialize();
+	setupScreen();
 
 	bool quit = false;
 
@@ -30,6 +30,7 @@ int main()
 			updateGraphics(cycles);
 			checkInterruptRequests();
 		}
+			//Sleep(100);
 		countCycles = 0;
 		drawToScreen();
 
