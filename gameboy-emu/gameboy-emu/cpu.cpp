@@ -651,7 +651,6 @@ int executeOpcode(unsigned char opcode)
 			regHL--;
 			regs[REG_H] = (regHL >> 8) & 0xFF;
 			regs[REG_L] = regHL & 0xFF;
-			std::cout.flush();
 			return 8;
 		}
 
@@ -873,7 +872,7 @@ int executeOpcode(unsigned char opcode)
 			if (regA == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
 
-			return 4;
+			return 8;
 		}
 
 		/*ADD A,#*/ case 0xC6:
@@ -1730,7 +1729,7 @@ int executeOpcode(unsigned char opcode)
 					if (!isBitSet(&val, bitNumber))
 						setBit(&regs[FLAGS], Z_FLAG);
 
-					return 8;
+					return 12;
 				}
 
 				/*BIT b, r*/
@@ -2171,7 +2170,7 @@ int executeOpcode(unsigned char opcode)
 			programCounter += (signed char)n;
 			programCounter++;
 
-			return 8;
+			return 12;
 		}
 
 		/*JR NZ,**/ case 0x20:
@@ -2289,7 +2288,7 @@ int executeOpcode(unsigned char opcode)
 		{
 			pushToStack(programCounter);
 			programCounter = 0x28;
-			return 32;
+			return 16;
 		}
 		///*RST 30H*/ case 0xF7:
 		//{
@@ -2300,13 +2299,13 @@ int executeOpcode(unsigned char opcode)
 			//push PRESENT address onto stack, hence we need to pass programCounter - 1
 			pushToStack(programCounter - 1);
 			programCounter = 0x38;
-			return 32;
+			return 16;
 		}
 
 		/*RET -/-*/ case 0xC9:
 		{
 			programCounter = popFromStack();
-			return 8;
+			return 16;
 		}
 
 		/*RET NZ*/ case 0xC0:
@@ -2355,7 +2354,7 @@ int executeOpcode(unsigned char opcode)
 		{
 			programCounter = popFromStack();
 			imeFlag = 1;
-			return 8;
+			return 16;
 		}
 
 
