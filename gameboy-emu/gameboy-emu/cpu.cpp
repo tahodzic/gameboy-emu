@@ -1977,10 +1977,46 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		///*DAA*/ case 0x27:
-		//{
-		//	herewasabreak;
-		//}
+		/*DAA*/ case 0x27:
+		{
+			unsigned char &regA = regs[REG_A];
+			signed char lowNibble = regA & 0x0F;
+
+			resetBit(&regs[FLAGS], Z_FLAG);
+
+			//	When this instruction is executed, the A register is BCD corrected using the contents of the flags.The exact process is the following : 
+			//if the least significant four bits of A contain a non - BCD digit(i.e.it is greater than 9) or the H flag is set, then $06 is added to the register.
+			//	Then the four most significant bits are checked.If this more significant digit also happens to be greater than 9 or the C flag is set, then $60 is added.
+
+			//If N = 1, subtract the correction, else add it
+			if (isBitSet(&regs[FLAGS], N_FLAG) == false)
+			{
+				if (regA > 0x99 || isBitSet(&regs[FLAGS], C_FLAG))
+				{
+					regA += 0x60;
+					setBit(&regs[FLAGS], C_FLAG);
+				}
+
+				if (lowNibble > 9 || isBitSet(&regs[FLAGS], H_FLAG))
+				{
+					regA += 0x06;
+				}
+			}
+			else
+			{
+				if (isBitSet(&regs[FLAGS], C_FLAG))
+					regA -= 0x60;
+				if (isBitSet(&regs[FLAGS], H_FLAG))
+					regA -= 0x06;
+			}
+
+			if (regA == 0)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			resetBit(&regs[FLAGS], H_FLAG);
+
+			return 4;
+		}
 
 		/*CPL*/ case 0x2F:
 		{
