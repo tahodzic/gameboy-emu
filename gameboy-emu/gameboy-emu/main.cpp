@@ -12,8 +12,9 @@ int main()
 {
 
 	//if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
-	if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
-		//if (!loadCartridge("D:/Other/Gameboy/cpu_instrs.gb"))
+	//if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
+	//if (!loadCartridge("D:/Other/Gameboy/blarggs/gb-test-roms-master/cpu_instrs/cpu_instrs.gb"))
+		if (!loadCartridge("D:/Other/Gameboy/blarggs/gb-test-roms-master/cpu_instrs/individual/01-special.gb"))
 		return -1;
 	initialize();
 	setupScreen();
@@ -30,7 +31,7 @@ int main()
 			updateGraphics(cycles);
 			checkInterruptRequests();
 		}
-			//Sleep(100);
+			Sleep(10);
 		countCycles = 0;
 		drawToScreen();
 

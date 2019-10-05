@@ -10,7 +10,15 @@
 
 
 int cyclesScanLine;
+unsigned char ram[65536];
 unsigned short stackPointer, programCounter;
+
+//Order is: B, C, D, E, H, L, F, A
+//B: 000, C: 001, D: 010,
+//E: 011, H: 100, L: 101, F: 110, A: 111
+unsigned char regs[8];
+
+
 /*Interrupts*/
 /*
 Bit 0: V-Blank Interupt
@@ -30,12 +38,6 @@ const unsigned char REG_H = 4;
 const unsigned char REG_L = 5;
 const unsigned char FLAGS = 6;
 
-//Order is: B, C, D, E, H, L, F, A
-//B: 000, C: 001, D: 010,
-//E: 011, H: 100, L: 101, F: 110, A: 111
-unsigned char regs[8];
-
-unsigned char ram[65536];
 int countCycles;
 
 /*Memory Bank Controller MBC*/
@@ -64,7 +66,7 @@ void initialize()
 	cyclesScanLine = CYCLES_PER_SCAN_LINE;
 	programCounter = 0x100;
 	stackPointer = 0xFFFE; // from $FFFE - $FF80, grows downward
-
+	
 	//standard values for registers and some ram locations according to pandocs
 	regs[REG_A] = 0x01;
 	regs[REG_B] = 0x00;
@@ -74,16 +76,6 @@ void initialize()
 	regs[REG_H] = 0x01;
 	regs[REG_L] = 0x4D;
 	regs[FLAGS] = 0xB0;
-
-	/*For cpu_instr.gb*/
-	//regs[REG_A] = 0x11;
-	//regs[FLAGS] = 0x80;
-	//regs[REG_B] = 0x00;
-	//regs[REG_C] = 0x00;
-	//regs[REG_D] = 0xFF;
-	//regs[REG_E] = 0x56;
-	//regs[REG_H] = 0x00;
-	//regs[REG_L] = 0x0D;
 
 	ram[0xFF00] = 0xFF;
 	ram[0xFF05] = 0x00;
@@ -175,40 +167,13 @@ unsigned char readRam(unsigned short address)
 /*8 Bit writes*/
 void writeRam(unsigned short address, unsigned char data)
 {
-	/*0x0000 - 0x7FFF is read only*/
-	if (address > 0x7FFF)
-	{
-		if (address >= 0xE000 && address < 0xFE00)
-		{
-			ram[address] = data;
-			writeRam(address - 0x2000, data);
-		}
-
-		else if (address >= 0xFEA0 && address < 0xFF00)
-		{
-
-		}
-
-
-		else if (address >= 0xFF4C && address < 0xFF80)
-		{
-
-		}
-
-		else if (address == 0xFF46)
-		{
-			startDmaTransfer(data);
-		}
-		else
-		{
-			ram[address] = data;
-		}
-	}
-	else if (address < 0x8000)
+	//std::cout << std::hex << address << "\n";
+	if (address < 0x8000)
 	{
 		handleBanking(address, data);
 
 	}
+
 	else if ((address >= 0xA000) && (address < 0xC000))
 	{
 		if (enableRam)
@@ -217,6 +182,43 @@ void writeRam(unsigned short address, unsigned char data)
 			ramBanks[newAddress + (currentReadOnlyMemoryBank * 0x2000)] = data;
 		}
 	}
+
+	else if (address >= 0xE000 && address < 0xFE00)
+	{
+		ram[address] = data;
+		writeRam(address - 0x2000, data);
+	}
+
+	else if (address >= 0xFEA0 && address < 0xFF00)
+	{
+
+	}
+
+	//// FF44 shows which horizontal scanline is currently being draw. Writing here resets it
+	//else if (address == 0xFF44)
+	//{
+	//	ram[0xFF44] = 0;
+	//}
+	else if (address == 0xFF44)
+	{
+		ram[LCDC_LY] = 0;
+	}
+	else if (address == 0xFF46)
+	{
+		startDmaTransfer(data);
+	}
+
+	/*Restricted area*/
+	else if (address >= 0xFF4C && address < 0xFF80)
+	{
+
+	}
+
+	else
+	{
+		ram[address] = data;
+	}
+
 
 }
 
@@ -453,7 +455,9 @@ int fetchOpcode()
 		return 0;
 
 	unsigned char opcode = 0;
+
 	opcode = readRam(programCounter);
+
 	programCounter++;
 	
 	return opcode;
@@ -463,6 +467,11 @@ int executeOpcode(unsigned char opcode)
 {
 	if (haltFlag)
 		return 4;
+	//std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter-1) << " " <<
+	//	"af: " << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS] << " " <<
+	//	"bc: " << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << " " <<
+	//	"de: " << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << " " <<
+	//	"hl: " << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
 	//debugCount++;
 	//if (debugCount > 1'000'000) 
 	//{
@@ -479,17 +488,17 @@ int executeOpcode(unsigned char opcode)
 	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
 	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
 	//}
-	std::cout << "A:" << std::uppercase << std::hex << (regs[REG_A] > 0xF ? "" : "0") << +regs[REG_A];
-	std::cout << " F:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
-		(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
-		(isBitSet(&regs[FLAGS], H_FLAG) ? "H" : "-") <<
-		(isBitSet(&regs[FLAGS], C_FLAG) ? "C" : "-");
-	std::cout << " BC:" << std::nouppercase <<std::hex << (regs[REG_B] > 0xF ? "" : "0") << +regs[REG_B] << (regs[REG_C] > 0xF ? "" : "0") << +regs[REG_C];
-	std::cout << " DE:" << std::nouppercase <<std::hex << (regs[REG_D] > 0xF ? "" : "0") << +regs[REG_D] << (regs[REG_E] > 0xF ? "" : "0") << +regs[REG_E];
-	std::cout << " HL:" << std::nouppercase <<std::hex << (regs[REG_H] > 0xF ? "" : "0") << +regs[REG_H] << (regs[REG_L] > 0xF ? "" : "0") << +regs[REG_L];
-	std::cout << " SP:" << std::nouppercase << std::hex << +stackPointer;
-	std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode;
-	std::cout << std::dec << " Countcycles: " << countCycles << "\n";
+	//std::cout << "A:" << std::uppercase << std::hex << (regs[REG_A] > 0xF ? "" : "0") << +regs[REG_A];
+	//std::cout << " F:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
+	//	(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
+	//	(isBitSet(&regs[FLAGS], H_FLAG) ? "H" : "-") <<
+	//	(isBitSet(&regs[FLAGS], C_FLAG) ? "C" : "-");
+	//std::cout << " BC:" << std::nouppercase <<std::hex << (regs[REG_B] > 0xF ? "" : "0") << +regs[REG_B] << (regs[REG_C] > 0xF ? "" : "0") << +regs[REG_C];
+	//std::cout << " DE:" << std::nouppercase <<std::hex << (regs[REG_D] > 0xF ? "" : "0") << +regs[REG_D] << (regs[REG_E] > 0xF ? "" : "0") << +regs[REG_E];
+	//std::cout << " HL:" << std::nouppercase <<std::hex << (regs[REG_H] > 0xF ? "" : "0") << +regs[REG_H] << (regs[REG_L] > 0xF ? "" : "0") << +regs[REG_L];
+	//std::cout << " SP:" << std::nouppercase << std::hex << +stackPointer;
+	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode;
+	//std::cout << std::dec << " Countcycles: " << countCycles << "\n";
 
 	if (imeFlagCount > 0)
 	{
@@ -524,7 +533,7 @@ int executeOpcode(unsigned char opcode)
 		}
 
 
-		///*LD r1, r2*/
+		/*LD r1, r2*/
 		case 0x7F: case 0x78: case 0x79: case 0x7A: case 0x7B: case 0x7C: case 0x7D: /*LD A, reg*/
 		case 0x40: case 0x41: case 0x42: case 0x43: case 0x44: case 0x45: case 0x47: /*LD B, reg*/
 		case 0x48: case 0x49: case 0x4A: case 0x4B: case 0x4C: case 0x4D: case 0x4F: /*LD C, reg*/
@@ -773,6 +782,8 @@ int executeOpcode(unsigned char opcode)
 			regs[REG_H] = res >> 8;
 			regs[REG_L] = res & 0xFF;
 
+			programCounter++;
+
 			return 12;
 
 		}
@@ -807,7 +818,8 @@ int executeOpcode(unsigned char opcode)
 		{
 			unsigned short popVal = popFromStack();
 			regs[REG_A] = (popVal & 0xFF00) >> 8;
-			regs[FLAGS] = (popVal & 0x00FF);
+			/*Lower nibble is ignored*/
+			regs[FLAGS] = (popVal & 0x00F0);
 
 			return 12;
 
@@ -1252,10 +1264,23 @@ int executeOpcode(unsigned char opcode)
 
 
 
-		///*XOR (HL)*/ case 0xAE:
-		//{
-		//	herewasabreak;
-		//}
+		/*XOR (HL)*/ case 0xAE:
+		{
+			unsigned short src = regs[REG_H] << 8 | regs[REG_L];
+			unsigned char val = readRam(src);
+
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
+			resetBit(&regs[FLAGS], Z_FLAG);
+
+			regs[REG_A] ^= val;
+
+			if (regs[REG_A] == 0x00)
+				setBit(&regs[FLAGS], Z_FLAG);
+
+			return 8;
+		}
 
 		/*XOR * */ case 0xEE:
 		{
@@ -2059,6 +2084,7 @@ int executeOpcode(unsigned char opcode)
 				setBit(&regA, 7);
 			}
 
+
 			if (regA == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
 			
@@ -2081,6 +2107,8 @@ int executeOpcode(unsigned char opcode)
 
 			if (isBitSet(&tmp, 0))
 				setBit(&regs[FLAGS], C_FLAG);
+			else
+				resetBit(&regs[FLAGS], C_FLAG);
 
 			if(regA == 0)
 				setBit(&regs[FLAGS], Z_FLAG);
@@ -2238,11 +2266,14 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		/*CALL NZ,nn*/ case 0xC4:
-		{
-			unsigned short nn = readRam(programCounter) << 8 | readRam(programCounter + 1);
-			if (isBitSet(&regs[FLAGS], Z_FLAG))
+		{		
+			if (!isBitSet(&regs[FLAGS], Z_FLAG))
 			{
-				programCounter = nn;
+				unsigned char nHighByte = readRam(programCounter);
+				unsigned char nLowByte = readRam(programCounter + 1);
+				pushToStack(programCounter + 2);
+				//LSB first
+				programCounter = nLowByte << 8 | nHighByte;
 				return 24;
 			}
 			else

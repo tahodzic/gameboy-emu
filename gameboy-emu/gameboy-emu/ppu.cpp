@@ -5,8 +5,10 @@
 #include "SDL.h"
 #include <iostream>
 
-unsigned char screenData[GB_SCREEN_X][GB_SCREEN_Y][3];
 extern int cyclesScanLine;
+extern unsigned char ram[65536];  
+
+unsigned char screenData[GB_SCREEN_X][GB_SCREEN_Y][3];
 
 SDL_Window *mainWindow = NULL;
 SDL_Renderer *renderer = NULL;
@@ -97,7 +99,9 @@ void updateGraphics(int cycles)
 		{
 			unsigned char currentLine = readRam(LCDC_LY);
 			currentLine++;
-			writeRam(LCDC_LY, currentLine);
+
+			ram[LCDC_LY] = currentLine;
+			//writeRam(LCDC_LY, currentLine);
 
 			cyclesScanLine = CYCLES_PER_SCAN_LINE;
 
@@ -108,7 +112,8 @@ void updateGraphics(int cycles)
 				requestInterrupt(VERTICAL_BLANKING);
 
 			else if (currentLine > 153)
-				writeRam(LCDC_LY, (unsigned short)0);
+				ram[LCDC_LY] = 0;
+				//writeRam(LCDC_LY, (unsigned short)0);
 		}
 	}
 
@@ -131,7 +136,7 @@ void renderSprites()
 
 	if (isBitSet(&lcdcControl, 2))
 		use8x16 = true;
-
+	
 	for (int sprite = 0; sprite < 40; sprite++)
 	{
 		unsigned char index = sprite * 4;
@@ -295,7 +300,9 @@ void renderTiles()
 	unsigned short tileRow = (((unsigned char)(yPos / 8)) * 32);
 
 
+	int dbgLY = readRam(0xFF44);
 
+	int b = 0;
 	for (int pixel = 0; pixel < GB_SCREEN_X; pixel++)
 	{
 		unsigned char xPos = pixel + scrollX;
@@ -306,7 +313,7 @@ void renderTiles()
 				xPos = pixel - windowX;
 		}
 		unsigned short tileCol = (xPos / 8);
-		short tileNum;
+		signed short tileNum;
 
 		unsigned short tileAddress = bgMemory + tileRow + tileCol;
 
@@ -376,6 +383,7 @@ void renderTiles()
 		screenData[pixel][ly][1] = green;
 		screenData[pixel][ly][2] = blue;
 	}
+	int a = 0;
 }
 
 
@@ -386,7 +394,8 @@ void setLcdStatus()
 	if (!isLcdEnabled())
 	{
 		cyclesScanLine = CYCLES_PER_SCAN_LINE;
-		writeRam(LCDC_LY, (unsigned char)0);
+		ram[LCDC_LY] = 0;
+		//writeRam(LCDC_LY, (unsigned char)0);
 		
 		//set mode to 01 (vblank mode)
 		status &= 0xFC;
