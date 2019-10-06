@@ -363,29 +363,30 @@ unsigned short popFromStack()
 void requestInterrupt(int interruptNumber)
 {
 	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
-	irRequestFlagStatus = irRequestFlagStatus | interruptNumber;
+	setBit(&irRequestFlagStatus, interruptNumber);
+	//irRequestFlagStatus = irRequestFlagStatus | interruptNumber;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 }
 
 void checkInterruptRequests()
 {
-	char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
-	char irEnableFlagStatus = readRam(IR_ENABLE_ADDRESS);
+	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
+	unsigned char irEnableFlagStatus = readRam(IR_ENABLE_ADDRESS);
 
 	if (irRequestFlagStatus > 0)
 	{
-		if (irRequestFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
+		if (isBitSet(&irRequestFlagStatus,VERTICAL_BLANKING))
 		{
-			if (irEnableFlagStatus & VERTICAL_BLANKING == VERTICAL_BLANKING)
+			if (isBitSet(&irEnableFlagStatus,VERTICAL_BLANKING))
 			{
 				haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(VERTICAL_BLANKING);
 			}
 		}
-		else if (irRequestFlagStatus & LCDC == LCDC)
+		else if (isBitSet(&irRequestFlagStatus,LCDC))
 		{
-			if (irEnableFlagStatus & LCDC == LCDC)
+			if (isBitSet(&irEnableFlagStatus,LCDC))
 			{
 				haltFlag = false;
 				if (imeFlag == 1)
@@ -393,9 +394,10 @@ void checkInterruptRequests()
 
 			}
 		}
-		else if (irRequestFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
+		
+		else if (isBitSet(&irRequestFlagStatus,TIMER_OVERFLOW))
 		{
-			if (irEnableFlagStatus & TIMER_OVERFLOW == TIMER_OVERFLOW)
+			if (isBitSet(&irEnableFlagStatus,TIMER_OVERFLOW))
 			{
 				haltFlag = false;
 				if (imeFlag == 1)
@@ -403,9 +405,9 @@ void checkInterruptRequests()
 
 			}
 		}
-		else if (irRequestFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
+		else if (isBitSet(&irRequestFlagStatus,SERIAL_IO_COMPLETION))
 		{
-			if (irEnableFlagStatus & SERIAL_IO_COMPLETION == SERIAL_IO_COMPLETION)
+			if (isBitSet(&irEnableFlagStatus,SERIAL_IO_COMPLETION))
 			{
 				haltFlag = false;
 				if (imeFlag == 1)
@@ -413,9 +415,9 @@ void checkInterruptRequests()
 
 			}
 		}
-		else if (irRequestFlagStatus & JOYPAD == JOYPAD)
+		else if (isBitSet(&irRequestFlagStatus,JOYPAD))
 		{
-			if (irEnableFlagStatus & JOYPAD == JOYPAD)
+			if (isBitSet(&irEnableFlagStatus,JOYPAD))
 			{
 				haltFlag = false;
 				if (imeFlag == 1)
@@ -435,7 +437,7 @@ void serviceInterrupt(int interruptNumber)
 	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 
 	//clear the interrupt bit in the status byte
-	irRequestFlagStatus &= ~interruptNumber;
+	resetBit(&irRequestFlagStatus,interruptNumber);
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 	pushToStack(programCounter);
 
