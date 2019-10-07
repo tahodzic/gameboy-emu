@@ -12,7 +12,7 @@
 int cyclesScanLine;
 unsigned char ram[65536];
 unsigned short stackPointer, programCounter;
-
+unsigned short * actPointer = (unsigned short*)&ram[0xdff1];
 //Order is: B, C, D, E, H, L, F, A
 //B: 000, C: 001, D: 010,
 //E: 011, H: 100, L: 101, F: 110, A: 111
@@ -340,19 +340,19 @@ void pushToStack(unsigned short data)
 	stackPointer -= 2;
 	unsigned char lowHalf = data & 0x00FF;
 	unsigned char highHalf = (data & 0xFF00) >> 8;
-	writeRam(stackPointer, highHalf);
-	writeRam(stackPointer + 1, lowHalf);
+	writeRam(stackPointer, lowHalf);
+	writeRam(stackPointer + 1, highHalf);
 }
 
 unsigned short popFromStack()
 {
-	unsigned short highHalf = readRam(stackPointer);
-	unsigned short lowHalf = readRam(stackPointer+1);
+	unsigned short lowHalf = readRam(stackPointer);
+	unsigned short highHalf = readRam(stackPointer+1);
 	unsigned short poppedValue = (highHalf << 8) | lowHalf;
 
 	//delete the popped value from stack
-	writeRam(stackPointer, 0x0);
-	writeRam(stackPointer+1, 0x0);
+	//writeRam(stackPointer, 0x0);
+	//writeRam(stackPointer+1, 0x0);
 
 	//increment SP so that it points to the most upper stack value 
 	stackPointer += 2;
@@ -766,7 +766,7 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		/*LD HL,SP+n*/ case 0xF8: {
-			signed char n = readRam(programCounter);
+			unsigned char n = readRam(programCounter);
 			unsigned short res = 0;
 
 			resetBit(&regs[FLAGS], Z_FLAG);
@@ -774,13 +774,13 @@ int executeOpcode(unsigned char opcode)
 			resetBit(&regs[FLAGS], C_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
 
-			if (((int)(stackPointer & 0xFF) + (int)n) > 0xFF)
+			if (((int)(stackPointer) + (int)n) > 0xFF)
 				setBit(&regs[FLAGS], C_FLAG);
 
-			if ((stackPointer & 0xF + n & 0xF) > 0xF)
+			if (((int)(stackPointer & 0xF) + (n & 0xF)) > 0xF)
 				setBit(&regs[FLAGS], H_FLAG);
 
-			res = stackPointer + n;
+			res = stackPointer + (signed char)n;
 			regs[REG_H] = res >> 8;
 			regs[REG_L] = res & 0xFF;
 
@@ -2333,41 +2333,14 @@ int executeOpcode(unsigned char opcode)
 		//	herewasabreak;
 		//}
 
-		///*RST 00H*/ case 0xC7:
-		//{
-		//	herewasabreak;
-		//}
-		///*RST 08H*/ case 0xCF:
-		//{
-		//	herewasabreak;
-		//}
-		///*RST 10H*/ case 0xD7:
-		//{
-		//	herewasabreak;
-		//}
-		///*RST 18H*/ case 0xDF:
-		//{
-		//	herewasabreak;
-		//}
-		///*RST 20H*/ case 0xE7:
-		//{
-		//	herewasabreak;
-		//}
-		/*RST 28H*/ case 0xEF:
+		/*RST 00H, RST 08H
+		  RST 10H, RST 18H
+          RST 20H, RST 28H
+          RST 30H, RST 38H*/
+		case 0xC7: case 0xCF: case 0xD7: case 0xDF: case 0xE7: case 0xEF: case 0xFF:
 		{
 			pushToStack(programCounter);
-			programCounter = 0x28;
-			return 16;
-		}
-		///*RST 30H*/ case 0xF7:
-		//{
-		//	herewasabreak;
-		//}
-		/*RST 38H*/ case 0xFF:
-		{
-			//push PRESENT address onto stack, hence we need to pass programCounter - 1
-			pushToStack(programCounter - 1);
-			programCounter = 0x38;
+			programCounter = opcode - 0xC7;
 			return 16;
 		}
 
