@@ -6,7 +6,6 @@
 unsigned char joypadState = 0xFF;
 extern unsigned char ram[65536];
 
-
 void handleInput(SDL_Event event)
 {
 	if (event.type == SDL_KEYDOWN)
@@ -16,7 +15,10 @@ void handleInput(SDL_Event event)
 		{
 			case SDLK_a: key = 4; break;
 			case SDLK_s: key = 5; break;
-			case SDLK_RETURN: key = 7; break;
+			case SDLK_RETURN: key = 7; 
+	std::cout << "keypressed" << std::endl;
+				
+				break;
 			case SDLK_SPACE: key = 6; break;
 			case SDLK_RIGHT: key = 0; break;
 			case SDLK_LEFT: key = 1; break;
@@ -67,6 +69,7 @@ void onKeyReleased(int key)
 
 void onKeyPressed(int key)
 {
+	resolveStop();
 	// this function CANNOT call ReadMemory(0xFF00) it must access it directly from m_Rom[0xFF00]
 // because ReadMemory traps this address
 	bool previouslyUnset = false;
@@ -100,7 +103,7 @@ void onKeyPressed(int key)
 
 	if (reqInterrupt && !previouslyUnset)
 	{
-		requestInterrupt(4);
+		requestInterrupt(JOYPAD);
 	}
 }
 

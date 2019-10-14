@@ -16,6 +16,12 @@
 #define LCDC_STAT 0xFF41
 #define LCDC_LY 0xFF44
 
+#define CLOCKSPEED 4194304
+#define DIV 0xFF04
+#define TIMA 0xFF05
+#define TMA 0xFF06
+#define TAC 0xFF07 
+
 #define Z_FLAG 7
 #define N_FLAG 6
 #define H_FLAG 5
@@ -57,6 +63,11 @@ void setBit(unsigned char * value, int bitNumber);
 void resetBit(unsigned char * value, int bitNumber);
 bool isBitSet(unsigned char * value, int bitNumber);
 
+void updateTimers(int cycles);
+bool isTimerEnabled();
+unsigned char getClockFrequency();
+void setClockFrequency();
+void updateDividerRegister(int cycles);
 
 int getRegPairNumber(unsigned short opcode);
 unsigned short readRegPairValue(int pairNr);
@@ -67,8 +78,7 @@ void changeLowRomBank(unsigned char data);
 void changeHighRomBank(unsigned char data);
 void changeRamBank(unsigned char data);
 void changeModeRomRam(unsigned char data);
-
-
+void resolveStop();
 
 #endif
 
