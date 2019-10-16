@@ -11,8 +11,8 @@ extern int countCycles;
 int main()
 {
 
-	if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
-	//if (!loadCartridge("D:/Other/Gameboy/Game/Legend of Zelda, The - Link's Awakening (Germany).gb"))
+	//if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
+	if (!loadCartridge("D:/Other/Gameboy/Game/Legend of Zelda, The - Link's Awakening (Germany).gb"))
 	//if (!loadCartridge("D:/Other/Gameboy/blarggs/gb-test-roms-master/cpu_instrs/cpu_instrs.gb"))
 	//if (!loadCartridge("D:/Other/Gameboy/blarggs/gb-test-roms-master/oam_bug/oam_bug.gb"))
 		return -1;

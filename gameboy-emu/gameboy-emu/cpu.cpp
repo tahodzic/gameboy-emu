@@ -558,17 +558,17 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	debugCount++;
-	if (debugCount > 1'100'000)
-	{
-		std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter - 1) << " " <<
-			"af: " << std::uppercase << std::hex << +regs[REG_A] << ":" << +regs[FLAGS] << " " <<
-			"bc: " << std::uppercase << std::hex << +regs[REG_B] << ":" << +regs[REG_C] << " " <<
-			"de: " << std::uppercase << std::hex << +regs[REG_D] << ":" << +regs[REG_E] << " " <<
-			"hl: " << std::uppercase << std::hex << +regs[REG_H] << ":" << +regs[REG_L] << " " <<
-			"sp: " << std::uppercase << std::hex << +stackPointer << " " <<
-			"haltFlag: " << (haltFlag ? "true" : "false") << "\n";
-	}
+	//debugCount++;
+	//if (debugCount > 1'100'000)
+	//{
+	//	std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter - 1) << " " <<
+	//		"af: " << std::uppercase << std::hex << +regs[REG_A] << ":" << +regs[FLAGS] << " " <<
+	//		"bc: " << std::uppercase << std::hex << +regs[REG_B] << ":" << +regs[REG_C] << " " <<
+	//		"de: " << std::uppercase << std::hex << +regs[REG_D] << ":" << +regs[REG_E] << " " <<
+	//		"hl: " << std::uppercase << std::hex << +regs[REG_H] << ":" << +regs[REG_L] << " " <<
+	//		"sp: " << std::uppercase << std::hex << +stackPointer << " " <<
+	//		"haltFlag: " << (haltFlag ? "true" : "false") << "\n";
+	//}
 	if (haltFlag || stopFlag)
 		return 4;
 
@@ -1528,7 +1528,6 @@ int executeOpcode(unsigned char opcode)
 				setBit(&regs[FLAGS], C_FLAG);
 			
 
-			programCounter++;
 
 			return 8;
 		}

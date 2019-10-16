@@ -15,7 +15,8 @@ void handleInput(SDL_Event event)
 		{
 			case SDLK_a: key = 4; break;
 			case SDLK_s: key = 5; break;
-			case SDLK_RETURN: key = 7; 
+			case SDLK_RETURN: key = 7;
+
 	std::cout << "keypressed" << std::endl;
 				
 				break;
