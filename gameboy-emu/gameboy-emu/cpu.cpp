@@ -141,6 +141,7 @@ void initialize()
 		default: 
 		{
 			std::cout << "Unhandled memory controller: " << std::hex << typeOfCartridge;
+			return;
 		}
 	}
 
@@ -470,7 +471,7 @@ void checkInterruptRequests()
 		{
 			if (isBitSet(&irEnableFlagStatus,VERTICAL_BLANKING))
 			{
-				haltFlag = false;
+				//haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(VERTICAL_BLANKING);
 			}
@@ -479,7 +480,7 @@ void checkInterruptRequests()
 		{
 			if (isBitSet(&irEnableFlagStatus,LCDC))
 			{
-				haltFlag = false;
+				//haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(LCDC);
 
@@ -490,7 +491,7 @@ void checkInterruptRequests()
 		{
 			if (isBitSet(&irEnableFlagStatus,TIMER_OVERFLOW))
 			{
-				haltFlag = false;
+				//haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(TIMER_OVERFLOW);
 
@@ -500,7 +501,7 @@ void checkInterruptRequests()
 		{
 			if (isBitSet(&irEnableFlagStatus,SERIAL_IO_COMPLETION))
 			{
-				haltFlag = false;
+				//haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(SERIAL_IO_COMPLETION);
 
@@ -510,7 +511,7 @@ void checkInterruptRequests()
 		{
 			if (isBitSet(&irEnableFlagStatus,JOYPAD))
 			{
-				haltFlag = false;
+				//haltFlag = false;
 				if (imeFlag == 1)
 					serviceInterrupt(JOYPAD);
 
@@ -524,11 +525,13 @@ void checkInterruptRequests()
 
 void serviceInterrupt(int interruptNumber)
 {
+	haltFlag = false;
 	imeFlag = 0;
 	unsigned char irRequestFlagStatus = readRam(IR_REQUEST_ADDRESS);
 
 	//clear the interrupt bit in the status byte
-	resetBit(&irRequestFlagStatus,interruptNumber);
+	//resetBit(&irRequestFlagStatus,interruptNumber);
+	irRequestFlagStatus = 0;
 	writeRam(IR_REQUEST_ADDRESS, irRequestFlagStatus);
 	pushToStack(programCounter);
 
@@ -558,17 +561,17 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	//debugCount++;
-	//if (debugCount > 1'100'000)
-	//{
-	//	std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter - 1) << " " <<
-	//		"af: " << std::uppercase << std::hex << +regs[REG_A] << ":" << +regs[FLAGS] << " " <<
-	//		"bc: " << std::uppercase << std::hex << +regs[REG_B] << ":" << +regs[REG_C] << " " <<
-	//		"de: " << std::uppercase << std::hex << +regs[REG_D] << ":" << +regs[REG_E] << " " <<
-	//		"hl: " << std::uppercase << std::hex << +regs[REG_H] << ":" << +regs[REG_L] << " " <<
-	//		"sp: " << std::uppercase << std::hex << +stackPointer << " " <<
-	//		"haltFlag: " << (haltFlag ? "true" : "false") << "\n";
-	//}
+	debugCount++;
+	if (debugCount > 1'100'000)
+	{
+		std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter - 1) << " " <<
+			"af: " << std::uppercase << std::hex << +regs[REG_A] << ":" << +regs[FLAGS] << " " <<
+			"bc: " << std::uppercase << std::hex << +regs[REG_B] << ":" << +regs[REG_C] << " " <<
+			"de: " << std::uppercase << std::hex << +regs[REG_D] << ":" << +regs[REG_E] << " " <<
+			"hl: " << std::uppercase << std::hex << +regs[REG_H] << ":" << +regs[REG_L] << " " <<
+			"sp: " << std::uppercase << std::hex << +stackPointer << " " <<
+			"haltFlag: " << (haltFlag ? "true" : "false") << "\n";
+	}
 	if (haltFlag || stopFlag)
 		return 4;
 
@@ -600,6 +603,8 @@ int executeOpcode(unsigned char opcode)
 	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode;
 	//std::cout << std::dec << " Countcycles: " << countCycles << "\n";
 
+	/*EI (0xFB) and DI (0xF3) are effective AFTER the next instruction,
+	following if statement enables that*/
 	if (imeFlagCount > 0)
 	{
 		imeFlagCount--;
@@ -615,8 +620,10 @@ int executeOpcode(unsigned char opcode)
 		}
 	}
 
+	/*Switch with all opcodes*/
 	switch (opcode)
 	{
+		/*NOP*/
 		case 0x00:
 		{
 			return 4;
@@ -767,7 +774,8 @@ int executeOpcode(unsigned char opcode)
 		/*LDD A,(HL)*/
 		case 0x3A:
 		{
-			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+			unsigned short regHL = regs[REG_H] << 8 | regs[REG_L];
+			//unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
 
 			regs[REG_A] = readRam(regHL);
 			regHL--;
@@ -781,7 +789,9 @@ int executeOpcode(unsigned char opcode)
 		/*LDD (HL),A*/
 		case 0x32:
 		{
-			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+			unsigned short regHL = regs[REG_H] << 8 | regs[REG_L];
+
+			//unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
 
 			writeRam(regHL, regs[REG_A]);
 			regHL--;
@@ -878,20 +888,20 @@ int executeOpcode(unsigned char opcode)
 		}
 
 		/*LD HL,SP+n*/ case 0xF8: {
-			unsigned char n = readRam(programCounter);
+			signed char n = readRam(programCounter);
 			unsigned short res = 0;
 
 			resetBit(&regs[FLAGS], Z_FLAG);
 			resetBit(&regs[FLAGS], N_FLAG);
 			resetBit(&regs[FLAGS], C_FLAG);
 			resetBit(&regs[FLAGS], H_FLAG);
-
-			if (((int)(stackPointer) + (int)n) > 0xFF)
-				setBit(&regs[FLAGS], C_FLAG);
-
-			if (((int)(stackPointer & 0xF) + (n & 0xF)) > 0xF)
+ 
+			if (((((unsigned char)stackPointer) & 0xF) + (((unsigned char)n) & 0xF)) > 0xF)
 				setBit(&regs[FLAGS], H_FLAG);
 
+			if ((((unsigned char)(stackPointer)) + (((unsigned char)n))) > 0xFF)
+				setBit(&regs[FLAGS], C_FLAG);
+ 
 			res = stackPointer + (signed char)n;
 			regs[REG_H] = res >> 8;
 			regs[REG_L] = res & 0xFF;
@@ -1518,9 +1528,6 @@ int executeOpcode(unsigned char opcode)
 
 			setBit(&regs[FLAGS], N_FLAG);
 
-		/*	if ((((regs[REG_A]) ^ val ^ res) & 0x10) >> 4)
-				setBit(&regs[FLAGS], H_FLAG);*/
-			
 			if ((regA & 0xF) < (val & 0xF))
 				setBit(&regs[FLAGS], H_FLAG);
 
@@ -1551,8 +1558,6 @@ int executeOpcode(unsigned char opcode)
 			
 			setBit(&regs[FLAGS],N_FLAG);
 
-			/*if ((((regs[REG_A]) ^ n ^ res) & 0x10) >> 4)
-				setBit(&regs[FLAGS], H_FLAG);*/
 			if ((regA & 0xF) < (n & 0xF))
 				setBit(&regs[FLAGS], H_FLAG);
 
@@ -1682,9 +1687,12 @@ int executeOpcode(unsigned char opcode)
 
 		/*ADD HL,SP*/ case 0x39:
 		{
-			unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+			unsigned short regHL = regs[REG_H] << 8 | regs[REG_L];
+			//unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
 
 			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
 
 			if (((stackPointer & 0xFFF) + (regHL & 0xFFF)) > 0xFFF)
 				setBit(&regs[FLAGS], H_FLAG);
@@ -1703,15 +1711,21 @@ int executeOpcode(unsigned char opcode)
 
 		/*ADD SP, #*/ case 0xE8:
 		{
-			unsigned char n = readRam(programCounter);
+			signed char n = readRam(programCounter);
+			
+			resetBit(&regs[FLAGS], N_FLAG);
+			resetBit(&regs[FLAGS], Z_FLAG);
+			resetBit(&regs[FLAGS], H_FLAG);
+			resetBit(&regs[FLAGS], C_FLAG);
 
-			if (((stackPointer & 0xFF) + n) > 0xFF)
+
+			if ((  ( ((unsigned char)stackPointer) & 0xF) + (((unsigned char)n) & 0xF)) > 0xF)
 				setBit(&regs[FLAGS], H_FLAG);
 
-			if ((int)(stackPointer + n) > 0xFFFF)
+			if ((  ((unsigned char)(stackPointer)) + (((unsigned char)n))) > 0xFF)
 				setBit(&regs[FLAGS], C_FLAG);
 
-			stackPointer += n;
+			stackPointer = (signed char)n + stackPointer;
 
 			programCounter++;
 
@@ -1732,7 +1746,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*INC SP*/ case 0x33:
 		{
-			stackPointer += 2;
+			stackPointer += 1;
 			return 8;
 		}
 
@@ -1750,7 +1764,7 @@ int executeOpcode(unsigned char opcode)
 
 		/*DEC SP*/ case 0x3B:
 		{
-			stackPointer -= 2;
+			stackPointer -= 1;
 			return 8;
 		}
 
@@ -2233,7 +2247,9 @@ int executeOpcode(unsigned char opcode)
 				/*RLC (HL)*/
 				case 0x06:
 				{
-					unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+					unsigned short regHL = regs[REG_H] << 8 | regs[REG_L];
+
+					//unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
 					unsigned char val = readRam(regHL);
 					unsigned char tmp = val;
 
@@ -2289,7 +2305,9 @@ int executeOpcode(unsigned char opcode)
 				/*RRC (HL)*/
 				case 0x0E:
 				{
-					unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
+					unsigned short regHL = regs[REG_H] << 8 | regs[REG_L];
+
+					//unsigned short regHL = ((regs[REG_H] << 8) & 0xFF00) + (regs[REG_L] & 0xFF);
 					unsigned char val = readRam(regHL);
 					unsigned char tmp = val;
 

@@ -15,6 +15,5 @@ void renderSprites();
 void renderTiles();
 bool isLcdEnabled();
 void setLcdStatus();
-int getColour(unsigned char colourNum, unsigned short address);
 
 #endif
