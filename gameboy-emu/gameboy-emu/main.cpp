@@ -11,8 +11,8 @@ extern int countCycles;
 int main()
 {
 
-	//if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
-	if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
+	if (!loadCartridge("D:/Other/Gameboy/Game/Tetris (World).gb"))
+	//if (!loadCartridge("D:/Other/Gameboy/Game/Mario_Yoshi.gb"))
 	//if (!loadCartridge("D:/Other/Gameboy/Game/Legend of Zelda, The - Link's Awakening (Germany).gb"))
 		//if (!loadCartridge("D:/Other/Gameboy/Game/Kirbys Dream Land.gb"))
 			

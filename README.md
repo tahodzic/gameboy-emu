@@ -4,3 +4,4 @@ Not yet finished Gameboy emulator written in C++. With help from codeslinger.co.
 ![Tetris startup screen](screenshots/tetris_gbemu.png?raw=true "Tetris")
 ![Kirby's Dreamland](screenshots/kirby.gif "Kirby's Dreamland")
 ![Mario Yoshi](screenshots/marioyoshi.gif "Mario & Yoshi")
+![Tetris](screenshots/tetris.gif "Tetris")
