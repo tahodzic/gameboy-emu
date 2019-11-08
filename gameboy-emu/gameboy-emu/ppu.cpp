@@ -3,6 +3,8 @@
 #include "ppu.h"
 #include "cpu.h"
 #include "SDL.h"
+#include "sdl_timer.h"
+#include "Windows.h"
 #include <iostream>
 
 extern int cyclesScanLine;
@@ -14,10 +16,21 @@ SDL_Window *mainWindow = NULL;
 SDL_Renderer *renderer = NULL;
 SDL_Texture* texture = NULL;
 
+/*FPS*/
+int frameCount;
+float avgFPS;
+
+void initializePPU()
+{
+	frameCount = 0;
+	avgFPS = 0.0f;
+	startTimer();
+	setupScreen();
+}
+
 void setupScreen()
 {
 	SDL_Init(SDL_INIT_VIDEO);
-
 	//Window
 	mainWindow = SDL_CreateWindow("Donai Yanen GameBoy Emulator",
 		SDL_WINDOWPOS_CENTERED,
@@ -27,7 +40,7 @@ void setupScreen()
 	);
 
 	//Renderer
-	renderer = SDL_CreateRenderer(mainWindow, -1, 0);
+	renderer = SDL_CreateRenderer(mainWindow, -1, SDL_RENDERER_ACCELERATED);
 	SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
 	SDL_RenderClear(renderer); // fill the scene with white
 	SDL_RenderPresent(renderer); // copy to screen
@@ -48,6 +61,19 @@ void setupScreen()
 		std::cout << "SDL_QueryTexture failed. Error: " << SDL_GetError();
 		return;
 	}
+}
+
+void handleFrameRate()
+{
+	int ticks = getTicks();
+	//Calculate and correct fps
+	avgFPS = frameCount / (ticks / 1000.f);
+	if (avgFPS > 2000000)
+	{
+		avgFPS = 0;
+	}
+
+	Sleep(5);
 }
 
 void drawToScreen()
@@ -72,17 +98,23 @@ void drawToScreen()
 			red = screenData[x][y][0];
 			green = screenData[x][y][1];
 			blue = screenData[x][y][2];
-			int a = y * GB_SCREEN_X + x;
 			pixels[y * GB_SCREEN_X + x] = (alpha << 3 * 8) | (red << 2 * 8) | (green << 8) | blue;
 
 		}
 	}
+
+
+
 
 	SDL_UnlockTexture(texture);
 	SDL_RenderClear(renderer);
 	SDL_RenderPresent(renderer);
 	SDL_RenderCopy(renderer, texture, NULL, NULL);
 	SDL_RenderPresent(renderer);
+	frameCount++;
+
+	//system("cls");
+	//std::cout << "  " << avgFPS;
 }
 
 
@@ -188,6 +220,8 @@ void renderSprites()
 				dotData <<= 1;
 				dotData |= (isBitSet(&data1, colourBit) ? 1 : 0);
 
+				if (dotData == 0)
+					continue;
 
 				unsigned short paletteAddress = isBitSet(&attributes, 4) ? 0xFF49 : 0xFF48;
 				int col = 0;
@@ -198,15 +232,15 @@ void renderSprites()
 				col <<= 1;
 				col |= (palette & (1 << (2 * dotData))) ? 1 : 0;
 
-				if (col == 0)
-					continue;
+			/*	if (col == 0)
+					continue;*/
 
 
 
 				int red = 0;
 				int green = 0;
 				int blue = 0;
-
+				
 				// setup the RGB values
 				switch (col)
 				{
@@ -237,6 +271,7 @@ void renderSprites()
 
 	}
 }
+
 void renderTiles()
 {
 	unsigned short tileData = 0, bgMemory = 0;

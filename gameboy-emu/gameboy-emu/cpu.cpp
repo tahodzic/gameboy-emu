@@ -7,12 +7,14 @@
 #include <fstream>
 #include <iostream>
 
+#ifdef _DEBUG
+int debugCount = 0;
+#endif
 
 
 int cyclesScanLine;
 unsigned char ram[65536];
 unsigned short stackPointer, programCounter;
-unsigned short * actPointer = (unsigned short*)&ram[0xdff1];
 int timerCounter, dividerCounter;
 
 //Order is: B, C, D, E, H, L, F, A
@@ -52,17 +54,17 @@ unsigned char currentReadOnlyMemoryBank;
 unsigned char ramBanks[0x8000];
 unsigned char currentRamBank;
 
-/*Debug purposes*/
-int debugCount = 0;
-/*****************/
+
 
 
 void initialize()
 {
+#ifdef _DEBUG
 	freopen("output.txt", "w", stdout);
 
 	//prevent automatic flush of cout after every "\n", speeds up extremely
 	std::setvbuf(stdout, nullptr, _IOFBF, BUFSIZ);
+#endif
 
 	countCycles = 0;
 	cyclesScanLine = CYCLES_PER_SCAN_LINE;
@@ -247,11 +249,11 @@ void writeRam(unsigned short address, unsigned char data)
 
 	}
 
-	//// FF44 shows which horizontal scanline is currently being draw. Writing here resets it
-	//else if (address == 0xFF44)
-	//{
-	//	ram[0xFF44] = 0;
-	//}
+	// FF44 shows which horizontal scanline is currently being draw. Writing here resets it
+	else if (address == 0xFF44)
+	{
+		ram[0xFF44] = 0;
+	}
 	else if (address == LCDC_LY)
 	{
 		ram[LCDC_LY] = 0;
@@ -561,36 +563,9 @@ int fetchOpcode()
 
 int executeOpcode(unsigned char opcode)
 {
-	debugCount++;
-	if (debugCount > 1'100'000)
-	{
-		std::cout << "OP = " << std::hex << +opcode << " PC = " << +(programCounter - 1) << " " <<
-			"af: " << std::uppercase << std::hex << +regs[REG_A] << ":" << +regs[FLAGS] << " " <<
-			"bc: " << std::uppercase << std::hex << +regs[REG_B] << ":" << +regs[REG_C] << " " <<
-			"de: " << std::uppercase << std::hex << +regs[REG_D] << ":" << +regs[REG_E] << " " <<
-			"hl: " << std::uppercase << std::hex << +regs[REG_H] << ":" << +regs[REG_L] << " " <<
-			"sp: " << std::uppercase << std::hex << +stackPointer << " " <<
-			"haltFlag: " << (haltFlag ? "true" : "false") << "\n";
-	}
-	if (haltFlag || stopFlag)
-		return 4;
 
-	//debugCount++;
-	//if (debugCount > 1'000'000) 
-	//{
-	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode << "\n";
-	//std::cout << "af: 0x" << std::uppercase << std::hex << +regs[REG_A] << +regs[FLAGS];
-	//std::cout << "   Flags:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
-	//	(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
-	//	(isBitSet(&regs[FLAGS], H_FLAG) ? "H" : "-") <<
-	//	(isBitSet(&regs[FLAGS], C_FLAG) ? "C" : "-") <<
-	//	"\n";
-	//std::cout << "bc: 0x" << std::uppercase << std::hex << +regs[REG_B] << +regs[REG_C] << "\n";
-	//std::cout << "de: 0x" << std::uppercase << std::hex << +regs[REG_D] << +regs[REG_E] << "\n";
-	//std::cout << "hl: 0x" << std::uppercase << std::hex << +regs[REG_H] << +regs[REG_L] << "\n";
-	//std::cout << "sp: 0x" << std::uppercase << std::hex << +stackPointer << "\n";
-	//std::cout << "pc: 0x" << std::uppercase << std::hex << +programCounter << "\n\n";
-	//}
+#ifdef _DEBUG
+
 	//std::cout << "A:" << std::uppercase << std::hex << (regs[REG_A] > 0xF ? "" : "0") << +regs[REG_A];
 	//std::cout << " F:" << (isBitSet(&regs[FLAGS], Z_FLAG) ? "Z" : "-") <<
 	//	(isBitSet(&regs[FLAGS], N_FLAG) ? "N" : "-") <<
@@ -600,8 +575,13 @@ int executeOpcode(unsigned char opcode)
 	//std::cout << " DE:" << std::nouppercase <<std::hex << (regs[REG_D] > 0xF ? "" : "0") << +regs[REG_D] << (regs[REG_E] > 0xF ? "" : "0") << +regs[REG_E];
 	//std::cout << " HL:" << std::nouppercase <<std::hex << (regs[REG_H] > 0xF ? "" : "0") << +regs[REG_H] << (regs[REG_L] > 0xF ? "" : "0") << +regs[REG_L];
 	//std::cout << " SP:" << std::nouppercase << std::hex << +stackPointer;
-	//std::cout << "Opcode: " << std::uppercase << std::hex << (opcode < 0x10 ? "0x0" : "0x") << (int)opcode;
-	//std::cout << std::dec << " Countcycles: " << countCycles << "\n";
+	//std::cout << " PC:" << std::nouppercase << std::hex << (programCounter > 0xFFF ? "" : (programCounter > 0xFF ? "0" : (programCounter > 0xF ? "00" : "0"))) << +(programCounter-1);
+	//std::cout << " op: " << std::uppercase << std::hex << (opcode > 0xF ? "" : "0") << +opcode << "\n";
+#endif
+
+	if (haltFlag || stopFlag)
+		return 4;
+
 
 	/*EI (0xFB) and DI (0xF3) are effective AFTER the next instruction,
 	following if statement enables that*/
