@@ -114,7 +114,7 @@ void drawToScreen()
 	frameCount++;
 
 	//system("cls");
-	//std::cout << "  " << avgFPS;
+	std::cout << "  " << avgFPS;
 }
 
 
